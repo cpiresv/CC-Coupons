@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+data/
+.impeccable/review/
+.impeccable/hook.cache.json
+*.log
+.DS_Store

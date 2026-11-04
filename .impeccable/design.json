@@ -1,0 +1,468 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-04T18:42:28.180Z",
+  "title": "Design System: CC Cupões",
+  "extensions": {
+    "colorMeta": {
+      "green": {
+        "role": "primary",
+        "displayName": "Forest Green",
+        "tonalRamp": [
+          "oklch(15.00% 0.04652 177.79)",
+          "oklch(26.43% 0.04652 177.79)",
+          "oklch(37.86% 0.04652 177.79)",
+          "oklch(49.29% 0.04652 177.79)",
+          "oklch(60.71% 0.04652 177.79)",
+          "oklch(72.14% 0.04652 177.79)",
+          "oklch(83.57% 0.04652 177.79)",
+          "oklch(95.00% 0.04652 177.79)"
+        ]
+      },
+      "green-hover": {
+        "role": "primary",
+        "displayName": "Forest Hover",
+        "tonalRamp": [
+          "oklch(15.00% 0.05724 175.27)",
+          "oklch(26.43% 0.05724 175.27)",
+          "oklch(37.86% 0.05724 175.27)",
+          "oklch(49.29% 0.05724 175.27)",
+          "oklch(60.71% 0.05724 175.27)",
+          "oklch(72.14% 0.05724 175.27)",
+          "oklch(83.57% 0.05724 175.27)",
+          "oklch(95.00% 0.05724 175.27)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Green Ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.03900 174.74)",
+          "oklch(26.43% 0.03900 174.74)",
+          "oklch(37.86% 0.03900 174.74)",
+          "oklch(49.29% 0.03900 174.74)",
+          "oklch(60.71% 0.03900 174.74)",
+          "oklch(72.14% 0.03900 174.74)",
+          "oklch(83.57% 0.03900 174.74)",
+          "oklch(95.00% 0.03900 174.74)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Green Ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.02598 167.92)",
+          "oklch(26.43% 0.02598 167.92)",
+          "oklch(37.86% 0.02598 167.92)",
+          "oklch(49.29% 0.02598 167.92)",
+          "oklch(60.71% 0.02598 167.92)",
+          "oklch(72.14% 0.02598 167.92)",
+          "oklch(83.57% 0.02598 167.92)",
+          "oklch(95.00% 0.02598 167.92)"
+        ]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Garden Paper",
+        "tonalRamp": [
+          "oklch(15.00% 0.00447 134.85)",
+          "oklch(26.43% 0.00447 134.85)",
+          "oklch(37.86% 0.00447 134.85)",
+          "oklch(49.29% 0.00447 134.85)",
+          "oklch(60.71% 0.00447 134.85)",
+          "oklch(72.14% 0.00447 134.85)",
+          "oklch(83.57% 0.00447 134.85)",
+          "oklch(95.00% 0.00447 134.85)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "White Surface",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95.00% 0.00000 0.00)"
+        ]
+      },
+      "sage": {
+        "role": "primary",
+        "displayName": "Pale Sage",
+        "tonalRamp": [
+          "oklch(15.00% 0.01294 141.81)",
+          "oklch(26.43% 0.01294 141.81)",
+          "oklch(37.86% 0.01294 141.81)",
+          "oklch(49.29% 0.01294 141.81)",
+          "oklch(60.71% 0.01294 141.81)",
+          "oklch(72.14% 0.01294 141.81)",
+          "oklch(83.57% 0.01294 141.81)",
+          "oklch(95.00% 0.01294 141.81)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Soft Rule",
+        "tonalRamp": [
+          "oklch(15.00% 0.01347 152.58)",
+          "oklch(26.43% 0.01347 152.58)",
+          "oklch(37.86% 0.01347 152.58)",
+          "oklch(49.29% 0.01347 152.58)",
+          "oklch(60.71% 0.01347 152.58)",
+          "oklch(72.14% 0.01347 152.58)",
+          "oklch(83.57% 0.01347 152.58)",
+          "oklch(95.00% 0.01347 152.58)"
+        ]
+      },
+      "account-divider": {
+        "role": "neutral",
+        "displayName": "Account Rule",
+        "tonalRamp": [
+          "oklch(15.00% 0.02397 149.34)",
+          "oklch(26.43% 0.02397 149.34)",
+          "oklch(37.86% 0.02397 149.34)",
+          "oklch(49.29% 0.02397 149.34)",
+          "oklch(60.71% 0.02397 149.34)",
+          "oklch(72.14% 0.02397 149.34)",
+          "oklch(83.57% 0.02397 149.34)",
+          "oklch(95.00% 0.02397 149.34)"
+        ]
+      },
+      "field-border": {
+        "role": "neutral",
+        "displayName": "Field Stroke",
+        "tonalRamp": [
+          "oklch(15.00% 0.02248 149.65)",
+          "oklch(26.43% 0.02248 149.65)",
+          "oklch(37.86% 0.02248 149.65)",
+          "oklch(49.29% 0.02248 149.65)",
+          "oklch(60.71% 0.02248 149.65)",
+          "oklch(72.14% 0.02248 149.65)",
+          "oklch(83.57% 0.02248 149.65)",
+          "oklch(95.00% 0.02248 149.65)"
+        ]
+      },
+      "heading-accent": {
+        "role": "primary",
+        "displayName": "Leaf Green",
+        "tonalRamp": [
+          "oklch(15.00% 0.05845 157.51)",
+          "oklch(26.43% 0.05845 157.51)",
+          "oklch(37.86% 0.05845 157.51)",
+          "oklch(49.29% 0.05845 157.51)",
+          "oklch(60.71% 0.05845 157.51)",
+          "oklch(72.14% 0.05845 157.51)",
+          "oklch(83.57% 0.05845 157.51)",
+          "oklch(95.00% 0.05845 157.51)"
+        ]
+      },
+      "inverse-muted": {
+        "role": "primary",
+        "displayName": "Light Leaf",
+        "tonalRamp": [
+          "oklch(15.00% 0.02936 153.31)",
+          "oklch(26.43% 0.02936 153.31)",
+          "oklch(37.86% 0.02936 153.31)",
+          "oklch(49.29% 0.02936 153.31)",
+          "oklch(60.71% 0.02936 153.31)",
+          "oklch(72.14% 0.02936 153.31)",
+          "oklch(83.57% 0.02936 153.31)",
+          "oklch(95.00% 0.02936 153.31)"
+        ]
+      },
+      "connected": {
+        "role": "secondary",
+        "displayName": "Connected Green",
+        "tonalRamp": [
+          "oklch(15.00% 0.06862 156.98)",
+          "oklch(26.43% 0.06862 156.98)",
+          "oklch(37.86% 0.06862 156.98)",
+          "oklch(49.29% 0.06862 156.98)",
+          "oklch(60.71% 0.06862 156.98)",
+          "oklch(72.14% 0.06862 156.98)",
+          "oklch(83.57% 0.06862 156.98)",
+          "oklch(95.00% 0.06862 156.98)"
+        ]
+      },
+      "positive": {
+        "role": "secondary",
+        "displayName": "Positive Green",
+        "tonalRamp": [
+          "oklch(15.00% 0.07100 157.73)",
+          "oklch(26.43% 0.07100 157.73)",
+          "oklch(37.86% 0.07100 157.73)",
+          "oklch(49.29% 0.07100 157.73)",
+          "oklch(60.71% 0.07100 157.73)",
+          "oklch(72.14% 0.07100 157.73)",
+          "oklch(83.57% 0.07100 157.73)",
+          "oklch(95.00% 0.07100 157.73)"
+        ]
+      },
+      "new-background": {
+        "role": "secondary",
+        "displayName": "New Offer Wash",
+        "tonalRamp": [
+          "oklch(15.00% 0.01802 142.82)",
+          "oklch(26.43% 0.01802 142.82)",
+          "oklch(37.86% 0.01802 142.82)",
+          "oklch(49.29% 0.01802 142.82)",
+          "oklch(60.71% 0.01802 142.82)",
+          "oklch(72.14% 0.01802 142.82)",
+          "oklch(83.57% 0.01802 142.82)",
+          "oklch(95.00% 0.01802 142.82)"
+        ]
+      },
+      "success-background": {
+        "role": "secondary",
+        "displayName": "Success Wash",
+        "tonalRamp": [
+          "oklch(15.00% 0.01635 142.56)",
+          "oklch(26.43% 0.01635 142.56)",
+          "oklch(37.86% 0.01635 142.56)",
+          "oklch(49.29% 0.01635 142.56)",
+          "oklch(60.71% 0.01635 142.56)",
+          "oklch(72.14% 0.01635 142.56)",
+          "oklch(83.57% 0.01635 142.56)",
+          "oklch(95.00% 0.01635 142.56)"
+        ]
+      },
+      "amber": {
+        "role": "secondary",
+        "displayName": "Amber",
+        "tonalRamp": [
+          "oklch(15.00% 0.09677 74.38)",
+          "oklch(26.43% 0.09677 74.38)",
+          "oklch(37.86% 0.09677 74.38)",
+          "oklch(49.29% 0.09677 74.38)",
+          "oklch(60.71% 0.09677 74.38)",
+          "oklch(72.14% 0.09677 74.38)",
+          "oklch(83.57% 0.09677 74.38)",
+          "oklch(95.00% 0.09677 74.38)"
+        ]
+      },
+      "amber-bg": {
+        "role": "secondary",
+        "displayName": "Amber Wash",
+        "tonalRamp": [
+          "oklch(15.00% 0.04331 91.26)",
+          "oklch(26.43% 0.04331 91.26)",
+          "oklch(37.86% 0.04331 91.26)",
+          "oklch(49.29% 0.04331 91.26)",
+          "oklch(60.71% 0.04331 91.26)",
+          "oklch(72.14% 0.04331 91.26)",
+          "oklch(83.57% 0.04331 91.26)",
+          "oklch(95.00% 0.04331 91.26)"
+        ]
+      },
+      "error": {
+        "role": "secondary",
+        "displayName": "Rust",
+        "tonalRamp": [
+          "oklch(15.00% 0.11309 37.60)",
+          "oklch(26.43% 0.11309 37.60)",
+          "oklch(37.86% 0.11309 37.60)",
+          "oklch(49.29% 0.11309 37.60)",
+          "oklch(60.71% 0.11309 37.60)",
+          "oklch(72.14% 0.11309 37.60)",
+          "oklch(83.57% 0.11309 37.60)",
+          "oklch(95.00% 0.11309 37.60)"
+        ]
+      },
+      "error-background": {
+        "role": "secondary",
+        "displayName": "Rust Wash",
+        "tonalRamp": [
+          "oklch(15.00% 0.01818 43.23)",
+          "oklch(26.43% 0.01818 43.23)",
+          "oklch(37.86% 0.01818 43.23)",
+          "oklch(49.29% 0.01818 43.23)",
+          "oklch(60.71% 0.01818 43.23)",
+          "oklch(72.14% 0.01818 43.23)",
+          "oklch(83.57% 0.01818 43.23)",
+          "oklch(95.00% 0.01818 43.23)"
+        ]
+      },
+      "focus": {
+        "role": "secondary",
+        "displayName": "Focus Orange",
+        "tonalRamp": [
+          "oklch(15.00% 0.13980 50.60)",
+          "oklch(26.43% 0.13980 50.60)",
+          "oklch(37.86% 0.13980 50.60)",
+          "oklch(49.29% 0.13980 50.60)",
+          "oklch(60.71% 0.13980 50.60)",
+          "oklch(72.14% 0.13980 50.60)",
+          "oklch(83.57% 0.13980 50.60)",
+          "oklch(95.00% 0.13980 50.60)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Page heading",
+        "purpose": "Responsive two-line heading with the second line in Leaf Green."
+      },
+      "headline": {
+        "displayName": "Section heading",
+        "purpose": "Account names and list captions."
+      },
+      "title": {
+        "displayName": "Offer title",
+        "purpose": "Offer and history titles; offer titles reduce to 0.92rem on mobile."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Working copy and native controls, based on a 15px root."
+      },
+      "label": {
+        "displayName": "Filter label",
+        "purpose": "Labels above native fields."
+      },
+      "discount": {
+        "displayName": "Discount value",
+        "purpose": "Leading offer values with tabular numerals; reduces to 1.65rem on mobile."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "button-background",
+        "value": "background-color 120ms ease-out",
+        "purpose": "Enabled only with prefers-reduced-motion: no-preference."
+      },
+      {
+        "name": "comparison-arrival",
+        "value": "arrive 160ms ease-out",
+        "purpose": "Sage background fades to transparent, enabled only with prefers-reduced-motion: no-preference."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile",
+        "value": "760px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary check button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Manual check action; a disabled state reports a running check.",
+      "html": "<button class=\"ds-primary\"><svg aria-hidden=\"true\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 7v5h-5 M4 17v-5h5 M6 7a7 7 0 0 1 12-1l2 3 M4 15l2 3a7 7 0 0 0 12-1\"/></svg>Verificar cupões</button>",
+      "css": ".ds-primary{font-family:Manrope,sans-serif;font-size:15px;line-height:1.55;display:flex;align-items:center;gap:10px;min-height:44px;border:0;border-radius:8px;background:var(--green,#173e36);color:#fff;padding:14px 20px;font-weight:700;cursor:pointer}.ds-primary:hover:not(:disabled){background:#28594d}.ds-primary:focus-visible{outline:3px solid #b75b18;outline-offset:4px;}.ds-primary:disabled{opacity:.6;cursor:wait}@media(prefers-reduced-motion:no-preference){.ds-primary{transition:background-color 120ms ease-out}}"
+    },
+    {
+      "name": "Date reset button",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "Underlined date-filter reset action.",
+      "html": "<button class=\"ds-text-button\">Limpar data</button>",
+      "css": ".ds-text-button{font-family:Manrope,sans-serif;font-size:15px;line-height:1.55;min-height:44px;border:0;background:transparent;text-decoration:underline;color:var(--muted,#5a6d65);cursor:pointer}.ds-text-button:focus-visible{outline:3px solid #b75b18;outline-offset:4px;}@media(prefers-reduced-motion:no-preference){.ds-text-button{transition:background-color 120ms ease-out}}"
+    },
+    {
+      "name": "Account field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Native labeled select for account filtering and the next manual check.",
+      "html": "<label class=\"ds-field-label\">Conta<select class=\"ds-field\"><option>As duas contas</option><option>Conta 1</option><option>Conta 2</option></select></label>",
+      "css": ".ds-field-label{font-family:Manrope,sans-serif;font-size:15px;line-height:1.55;display:flex;flex-direction:column;gap:7px;font-size:11.25px;color:var(--muted,#5a6d65)}.ds-field{font-family:Manrope,sans-serif;font-size:15px;line-height:1.55;background:#fff;color:var(--ink,#203e36);border:1px solid #bdcbbf;border-radius:6px;min-height:44px;padding:10px 34px 10px 12px;max-width:100%;cursor:pointer}.ds-field:focus-visible{outline:3px solid #b75b18;outline-offset:4px;}"
+    },
+    {
+      "name": "View navigation",
+      "kind": "nav",
+      "refersTo": "navigation-tab",
+      "description": "Three views use a ruled selected state; this sample shows Cupões selected.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Vistas dos cupões\"><button class=\"ds-tab ds-selected\" aria-current=\"page\">Cupões</button><button class=\"ds-tab\">Comparar contas</button><button class=\"ds-tab\">Histórico</button></nav>",
+      "css": ".ds-nav{display:flex;gap:24px;border-bottom:1px solid var(--line,#d9e2db)}.ds-tab{font-family:Manrope,sans-serif;font-size:15px;line-height:1.55;min-height:44px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted,#5a6d65);padding:12px 0;cursor:pointer}.ds-tab:hover{color:var(--ink,#203e36)}.ds-tab.ds-selected{color:var(--ink,#203e36);border-bottom-color:var(--ink,#203e36);font-weight:700}.ds-tab:focus-visible{outline:3px solid #b75b18;outline-offset:4px;}@media(max-width:760px){.ds-nav{gap:22px;width:100%;justify-content:space-between}}@media(prefers-reduced-motion:no-preference){.ds-tab{transition:background-color 120ms ease-out}}"
+    },
+    {
+      "name": "New offer badge",
+      "kind": "chip",
+      "refersTo": "badge-new",
+      "description": "Informational badge; it has no hover or interactive state.",
+      "html": "<span class=\"ds-new\">Novo</span>",
+      "css": ".ds-new{font-family:Manrope,sans-serif;font-size:10.2px;line-height:1.55;font-weight:700;padding:2px 8px;border-radius:4px;color:#285a3f;background:#e8f2e7}"
+    },
+    {
+      "name": "Expiry badge",
+      "kind": "chip",
+      "refersTo": "badge-urgent",
+      "description": "Written urgency label accompanies the amber treatment; it is not a control.",
+      "html": "<span class=\"ds-urgent\">Expira em 48h</span>",
+      "css": ".ds-urgent{font-family:Manrope,sans-serif;font-size:10.2px;line-height:1.55;font-weight:700;padding:2px 8px;border-radius:4px;color:var(--amber,#795004);background:var(--amber-bg,#fff4d4)}"
+    },
+    {
+      "name": "Shared account strip",
+      "kind": "card",
+      "refersTo": "account-strip",
+      "description": "Two summaries share one sage surface. Sample labels are illustrative, not a live account report.",
+      "html": "<section class=\"ds-accounts\" aria-label=\"Estado das contas\"><div class=\"ds-account\"><div class=\"ds-account-title\"><h2 class=\"ds-account-name\">Conta 1</h2><span class=\"ds-connection\">Por ligar</span></div><p class=\"ds-account-time\">Última verificação: <strong class=\"ds-account-date\">Ainda não verificada</strong></p></div><div class=\"ds-account\"><div class=\"ds-account-title\"><h2 class=\"ds-account-name\">Conta 2</h2><span class=\"ds-connection\">Por ligar</span></div><p class=\"ds-account-time\">Última verificação: <strong class=\"ds-account-date\">Ainda não verificada</strong></p></div></section>",
+      "css": ".ds-accounts{font-family:Manrope,sans-serif;font-size:15px;line-height:1.55;display:grid;grid-template-columns:1fr 1fr;background:var(--sage,#eaf1e9);color:var(--ink,#203e36);border-radius:12px;overflow:hidden}.ds-account{padding:22px 26px;min-width:0}.ds-account+.ds-account{border-left:1px solid #c8d7ca}.ds-account-title{display:flex;gap:14px;align-items:center;justify-content:space-between}.ds-account-name{font-size:16.5px;margin:0}.ds-connection{font-size:10.8px;font-weight:700;display:flex;align-items:center;gap:7px;color:var(--amber,#795004)}.ds-connection:before{content:\"\";width:7px;height:7px;border-radius:50%;background:currentColor}.ds-account-time{font-size:12px;color:var(--muted,#5a6d65);margin:8px 0 0}.ds-account-date{font-weight:400;color:var(--ink,#203e36)}@media(max-width:760px){.ds-accounts{grid-template-columns:1fr}.ds-account{padding:20px}.ds-account+.ds-account{border-left:0;border-top:1px solid #c8d7ca}}"
+    },
+    {
+      "name": "Ruled offer row",
+      "kind": "custom",
+      "refersTo": "offer-row",
+      "description": "Illustrative offer with discount, identity, native disclosure, and a mobile-visible status.",
+      "html": "<article class=\"ds-offer-row\"><div class=\"ds-discount\"><strong class=\"ds-discount-value\">10%</strong><span class=\"ds-discount-caption\">em cartão</span></div><div class=\"ds-offer\"><div class=\"ds-offer-labels\"><span class=\"ds-brand\">Continente</span><span>Conta 1</span></div><h3 class=\"ds-offer-title\">Oferta de exemplo</h3><details class=\"ds-details\"><summary class=\"ds-summary\">Condições e imagem original</summary><p class=\"ds-details-copy\">As condições e a imagem original aparecem aqui quando disponíveis.</p></details></div><div class=\"ds-validity\"><span class=\"ds-status-label\">Disponíveis</span><strong>Até 10 nov. 2026</strong><small class=\"ds-validity-start\">Desde 4 nov. 2026</small></div></article>",
+      "css": ".ds-offer-row{font-family:Manrope,sans-serif;font-size:15px;line-height:1.55;display:grid;grid-template-columns:120px minmax(0,1fr) 170px;gap:24px;padding:26px 20px 26px 0;border-top:1px solid var(--line,#d9e2db);border-bottom:1px solid var(--line,#d9e2db);background:#fff;color:var(--ink,#203e36)}.ds-discount{display:flex;flex-direction:column;align-items:center;padding:7px 12px 0;font-variant-numeric:tabular-nums}.ds-discount-value{font-size:30px;letter-spacing:-.035em;white-space:nowrap}.ds-discount-caption{font-size:10.8px;color:var(--muted,#5a6d65);text-align:center}.ds-offer{min-width:0}.ds-offer-labels{display:flex;flex-wrap:wrap;gap:8px 14px;margin-bottom:6px;font-size:10.8px;color:var(--muted,#5a6d65)}.ds-brand{font-size:11.25px;font-weight:700;color:var(--ink,#203e36)}.ds-offer-title{font-size:15px;line-height:1.65;margin:0;text-wrap:balance}.ds-summary{font-size:11.25px;color:var(--muted,#5a6d65);padding:10px 0;min-height:36px;list-style-position:inside;cursor:pointer}.ds-summary:hover{color:var(--ink,#203e36)}.ds-summary:focus-visible{outline:3px solid #b75b18;outline-offset:4px;}.ds-details-copy{font-size:12px;color:var(--muted,#5a6d65);margin:0;padding:8px 0}.ds-validity{display:flex;flex-direction:column;align-items:flex-end;font-size:12px;gap:6px;white-space:nowrap;font-variant-numeric:tabular-nums}.ds-status-label{color:var(--muted,#5a6d65);font-size:10.5px}.ds-validity-start{font-size:12px;color:var(--muted,#5a6d65)}@media(max-width:760px){.ds-offer-row{grid-template-columns:78px minmax(0,1fr);gap:12px;padding:20px 12px 20px 0}.ds-discount{padding:4px 8px}.ds-discount-value{font-size:24.75px;white-space:normal}.ds-offer-title{font-size:13.8px}.ds-validity{grid-column:2;align-items:flex-start;gap:3px}}"
+    },
+    {
+      "name": "Account comparison",
+      "kind": "custom",
+      "refersTo": "comparison-heading",
+      "description": "Illustrative comparison repeats account names on mobile and distinguishes an unverified account.",
+      "html": "<div class=\"ds-comparison\"><div class=\"ds-compare-row ds-compare-heading\"><span>Oferta e validade</span><span>Conta 1</span><span>Conta 2</span></div><div class=\"ds-compare-row\"><div class=\"ds-compare-offer\"><span class=\"ds-compare-brand\">Continente</span><h3 class=\"ds-compare-title\">Oferta de exemplo</h3><small class=\"ds-compare-small\">4 nov. 2026 — 10 nov. 2026</small></div><div class=\"ds-compare-value\"><span class=\"ds-mobile-account\">Conta 1</span><span><strong class=\"ds-compare-discount\">10%</strong><small class=\"ds-compare-small\">Disponível</small></span></div><div class=\"ds-compare-value\"><span class=\"ds-mobile-account\">Conta 2</span><small class=\"ds-compare-small\">Por verificar</small></div></div></div>",
+      "css": ".ds-comparison{font-family:Manrope,sans-serif;font-size:15px;line-height:1.55;color:var(--ink,#203e36)}.ds-compare-row{display:grid;grid-template-columns:minmax(0,1fr) 160px 160px;gap:24px;padding:22px 0;border-bottom:1px solid var(--line,#d9e2db)}.ds-compare-heading{font-size:12px;color:var(--muted,#5a6d65);padding:10px 0;background:var(--sage,#eaf1e9)}.ds-compare-heading span:first-child{padding-left:12px}.ds-compare-brand{font-size:11.25px;font-weight:700}.ds-compare-title{font-size:15px;line-height:1.65;margin:5px 0;text-wrap:balance}.ds-compare-small{font-size:12px;color:var(--muted,#5a6d65)}.ds-compare-value{display:flex;flex-direction:column;justify-content:center;gap:8px;font-variant-numeric:tabular-nums}.ds-compare-discount{font-size:24px}.ds-compare-value .ds-compare-small{display:block}.ds-mobile-account{display:none}@media(max-width:760px){.ds-compare-row{grid-template-columns:1fr 1fr;gap:14px}.ds-compare-offer{grid-column:1/-1}.ds-compare-heading{display:none}.ds-mobile-account{display:block;font-size:11.25px;color:var(--muted,#5a6d65)}}@media(prefers-reduced-motion:no-preference){.ds-compare-row{animation:ds-arrive 160ms ease-out}@keyframes ds-arrive{from{background:#eaf1e9}to{background:transparent}}}"
+    },
+    {
+      "name": "History record",
+      "kind": "custom",
+      "refersTo": "history-row",
+      "description": "Illustrative account-filtered event row with native before-and-after disclosure.",
+      "html": "<article class=\"ds-history-row\"><time class=\"ds-history-time\">4 nov., 09:00</time><div><div class=\"ds-history-labels\"><span class=\"ds-history-kind\">Cupão alterado</span><span>Conta 1</span></div><h3 class=\"ds-history-title\">Oferta de exemplo</h3><p class=\"ds-history-copy\">Continente · 10% · até 10 nov. 2026</p><details><summary class=\"ds-history-summary\">Ver alteração</summary><dl class=\"ds-history-diff\"><dt>Antes</dt><dd>5% · Oferta de exemplo</dd><dt>Depois</dt><dd>10% · Oferta de exemplo</dd></dl></details></div></article>",
+      "css": ".ds-history-row{font-family:Manrope,sans-serif;font-size:15px;line-height:1.55;display:grid;grid-template-columns:160px 1fr;gap:24px;padding:24px 0;border-bottom:1px solid var(--line,#d9e2db);color:var(--ink,#203e36)}.ds-history-time{font-size:12px;color:var(--muted,#5a6d65)}.ds-history-labels{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:10.8px;color:var(--muted,#5a6d65);margin-bottom:6px}.ds-history-kind{font-size:11.25px;font-weight:700;color:var(--ink,#203e36)}.ds-history-title{font-size:15px;line-height:1.65;margin:0;text-wrap:balance}.ds-history-copy{font-size:12px;margin:8px 0 0;color:var(--muted,#5a6d65)}.ds-history-summary{font-size:11.25px;color:var(--muted,#5a6d65);padding:10px 0;min-height:36px;list-style-position:inside;cursor:pointer}.ds-history-summary:hover{color:var(--ink,#203e36)}.ds-history-summary:focus-visible{outline:3px solid #b75b18;outline-offset:4px;}.ds-history-diff{font-size:12px;margin:16px 0}.ds-history-diff dt{color:var(--muted,#5a6d65);margin-top:8px}.ds-history-diff dd{margin:2px 0;color:var(--ink,#203e36);overflow-wrap:anywhere}@media(max-width:760px){.ds-history-row{grid-template-columns:1fr;gap:10px}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Weekly shopping planner",
+    "overview": "CC Cupões is a Portuguese operational dashboard for checking coupon records before shopping. Its forest-green navigation, pale sage account strip, and white offer rows make account ownership and usable dates easy to scan. Manrope gives the interface a consistent, restrained voice.\n\nThe implemented system uses alignment, horizontal rules, and clear text states. Discount values lead each offer; account identity, conditions, and validity stay close. The two-account comparison preserves the same offer identity across columns.\n\nThis document records `dashboard/src/App.jsx` and `dashboard/src/style.css`, with the direction contract in `index.html` (seed `25aafe48`) and product constraints in `PRODUCT.md`. It describes implemented presentation, not successful external account authentication or Telegram delivery.",
+    "keyCharacteristics": [
+      "Forest-green navigation and a sage account status strip.",
+      "Self-hosted Manrope throughout the working interface.",
+      "Ruled offer rows with large discount values and explicit dates.",
+      "Portuguese account, status, comparison, and history labels.",
+      "Flat surfaces with visible keyboard focus and restrained motion."
+    ],
+    "rules": [
+      {
+        "name": "The Written State Rule",
+        "body": "Always retain the state label beside a status color or dot, including on mobile.",
+        "section": "colors"
+      },
+      {
+        "name": "The Offer Identity Rule",
+        "body": "Keep each offer's title and validity together when its account values move between desktop and mobile layouts.",
+        "section": "layout"
+      }
+    ],
+    "dos": [
+      "**Do** keep Portuguese operational labels and Europe/Lisbon date context consistent.",
+      "**Do** place account identity, written status, and validity near each offer.",
+      "**Do** preserve visible status and account labels when columns collapse on mobile.",
+      "**Do** use horizontal rules and aligned values to organize repeated records.",
+      "**Do** keep unknown values and unverified account states explicit.",
+      "**Do** retain native fields, disclosures, visible focus, and reduced-motion behavior."
+    ],
+    "donts": [
+      "**Don't** turn every offer into a floating, shadowed card.",
+      "**Don't** communicate connection or expiry state through color alone.",
+      "**Don't** replace original offer evidence with invented discount values or decorative imagery.",
+      "**Don't** treat an account without a successful check as confirmed to have no offers.",
+      "**Don't** present configured Telegram settings as verified notification delivery."
+    ]
+  }
+}
