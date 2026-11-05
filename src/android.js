@@ -81,6 +81,46 @@ export function couponTapRange([, top, , bottom], cardTop) {
   return [top + margin, cardTop - margin];
 }
 
+export function couponNavigationSwipe(nodes, id) {
+  const node = nodes.find((n) => n["resource-id"] === id);
+  const bounds = (n) => n?.bounds?.match(/^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$/)?.slice(1).map(Number);
+  const content = bounds(nodes.find((n) => n["resource-id"] === "b1-Content"));
+  if (!node || !content || content[2] <= content[0]) throw new CheckError("LAYOUT_CHANGED");
+  const [left, top, right, bottom] = content;
+  const [safeTop, safeBottom] = couponTapRange(content, bounds(nodes.find((n) => n["resource-id"] === "UseCardLink"))?.[1]);
+  const center = (n) => n?.center?.match(/^\[(-?\d+),(-?\d+)\]$/)?.slice(1).map(Number) || [];
+  const [x, y] = center(node);
+  const visible = (n) => !n.hidden && !n["off-screen"];
+  const storeTab = id.endsWith("-SelectInsigniaLink2");
+  const row = nodes.find((n) => n["resource-id"] === "InsigniaList");
+  const rowBounds = bounds(row);
+  const rowY = center(row)[1];
+  // Reveal the store row vertically before swiping within its horizontal viewport.
+  if (storeTab && rowBounds && visible(row) && rowY > safeTop && rowY < safeBottom) {
+    const start = Math.max(left, rowBounds[0]), end = Math.min(right, rowBounds[2]);
+    if (end <= start) throw new CheckError("LAYOUT_CHANGED");
+    const inset = (end - start) * .05;
+    const reachable = (n) => {
+      const [nx, ny] = center(n);
+      return visible(n) && nx > start + inset && nx < end - inset && ny > safeTop && ny < safeBottom;
+    };
+    if (reachable(node)) return null;
+    const tabs = nodes.filter((n) => n["resource-id"]?.endsWith("-SelectInsigniaLink2"));
+    const firstVisible = tabs.findIndex(reachable);
+    if (firstVisible < 0) throw new CheckError("LAYOUT_CHANGED");
+    const towardsLeft = x <= start + inset || tabs.indexOf(node) < firstVisible;
+    return [start + (end - start) * (towardsLeft ? .2 : .8), rowY,
+      start + (end - start) * (towardsLeft ? .8 : .2), rowY].map(Math.round);
+  }
+  if (!storeTab && visible(node) && y > safeTop && y < safeBottom) return null;
+  const links = nodes.filter((n) => /-(seeDetail2?|SelectInsigniaLink2)$/.test(n["resource-id"] || ""));
+  const firstVisible = links.findIndex((n) => n.bounds && visible(n));
+  const up = storeTab || y <= safeTop || (firstVisible >= 0 && links.indexOf(node) < firstVisible);
+  const swipeX = left + (right - left) * .7;
+  return [swipeX, top + (bottom - top) * (up ? .35 : .65),
+    swipeX, top + (bottom - top) * (up ? .65 : .35)].map(Math.round);
+}
+
 async function navigate(device, node, predicate) {
   for (let attempt = 0; attempt < 3; attempt++) {
     await device.tap(node);
@@ -116,7 +156,7 @@ export async function collectAndroidCoupons(device) {
       nodes = await navigate(device, links[index], (ns) => {
         try {
           if (carousel(ns).total !== expected) return false;
-          if (!ns.some((n) => n["resource-id"]?.endsWith("-Back") && label(n) === "Voltar página anterior")) return false;
+          if (!ns.some((n) => n["resource-id"]?.endsWith("-Back") && label(n) === "Voltar página anterior" && !n.hidden && !n["off-screen"])) return false;
           const insignia = ns.find((n) => n["resource-id"]?.endsWith("-InsigniaImage"));
           if (!insignia || !label(insignia).startsWith(brand)) return false;
           coupon = parseAndroidCoupon(ns, brand);
@@ -124,7 +164,7 @@ export async function collectAndroidCoupons(device) {
         } catch { return false; }
       });
       coupons.push(coupon);
-      nodes = await navigate(device, nodes.find((n) => n["resource-id"]?.endsWith("-Back") && label(n) === "Voltar página anterior"), (ns) => ns.some((n) => label(n) === "CouponsList") && ns.filter((n) => /-seeDetail2?$/.test(n["resource-id"] || "")).length === expected);
+      nodes = await navigate(device, nodes.find((n) => n["resource-id"]?.endsWith("-Back") && label(n) === "Voltar página anterior" && !n.hidden && !n["off-screen"]), (ns) => ns.some((n) => label(n) === "CouponsList") && ns.filter((n) => /-seeDetail2?$/.test(n["resource-id"] || "")).length === expected);
     }
   }
   if (new Set(coupons.map((c) => c.key)).size !== coupons.length)
@@ -224,28 +264,11 @@ export async function openAndroid(accountId, { headed = false } = {}) {
         if (!node || !/^[\w:-]+$/.test(node["resource-id"] || "")) throw new CheckError("LAYOUT_CHANGED");
         const id = node["resource-id"];
         const listLink = /-(seeDetail2?|SelectInsigniaLink2)$/.test(id);
-        // Keep links clear of the fixed header and card button; clipped links ignore taps.
         for (let attempt = 0; listLink || node.hidden || node["off-screen"]; attempt++) {
           if (attempt >= 20 || !/-(seeDetail2?|SelectInsigniaLink2)$/.test(id)) throw new CheckError("LAYOUT_CHANGED");
-          const nodes = await device.read();
-          node = nodes.find((n) => n["resource-id"] === id);
-          if (!node) throw new CheckError("LAYOUT_CHANGED");
-          const bounds = nodes.find((n) => n["resource-id"] === "b1-Content")?.bounds?.match(/^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$/)?.slice(1).map(Number);
-          if (!bounds) throw new CheckError("LAYOUT_CHANGED");
-          const [left, top, right, bottom] = bounds;
-          const y = Number(node.center?.match(/^\[\d+,(\d+)\]$/)?.[1]);
-          const cardTop = Number(nodes.find((n) => n["resource-id"] === "UseCardLink")?.bounds?.match(/^\[\d+,(\d+)\]/)?.[1]);
-          const [safeTop, safeBottom] = couponTapRange(bounds, cardTop);
-          if (!node.hidden && !node["off-screen"] && y > safeTop && y < safeBottom) break;
-          const links = nodes.filter((n) => /-(seeDetail2?|SelectInsigniaLink2)$/.test(n["resource-id"] || ""));
-          const firstVisible = links.findIndex((n) => n.bounds && !n.hidden && !n["off-screen"]);
-          const up = id.endsWith("-SelectInsigniaLink2") || y <= safeTop || (firstVisible >= 0 && links.findIndex((n) => n["resource-id"] === id) < firstVisible);
-          const x = String(Math.round(left + (right - left) * .7));
-          const y1 = String(Math.round(top + (bottom - top) * (up ? .35 : .65)));
-          const y2 = String(Math.round(top + (bottom - top) * (up ? .65 : .35)));
-          await adb(["shell", "input", "touchscreen", "swipe", x, y1, x, y2, "1000"]);
-          node = (await device.read()).find((n) => n["resource-id"] === id);
-          if (!node) throw new CheckError("LAYOUT_CHANGED");
+          const swipe = couponNavigationSwipe(await device.read(), id);
+          if (!swipe) break;
+          await adb(["shell", "input", "touchscreen", "swipe", ...swipe.map(String), "1000"]);
         }
         await android(["input", `--device=${serial}`, "tap", "--wait=10000", `id=/^${node["resource-id"]}$/`]);
       },

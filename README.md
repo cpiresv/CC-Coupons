@@ -40,7 +40,9 @@ A SQLite process lock covers login, checks, scheduling, and notification dispatc
 
 ## Android integration
 
-All account checks read the official app's accessibility tree. The same manual check, dashboard button, daily schedule, history, comparison, and Telegram outbox process its coupons. The collector opens each store's list entries individually, including upcoming coupons, and waits for complete codes, discounts, conditions, and dates. It scrolls links clear of the app's fixed controls before opening them. The detail count must match the list count, and coupon identities must be unique before saving a snapshot. Incomplete or empty results preserve the previous data.
+All account checks read the official app's accessibility tree. The same manual check, dashboard button, daily schedule, history, comparison, and Telegram outbox process its coupons. The collector discovers store names from the full accessibility tree, including off-screen tabs. It reveals the store row vertically, then swipes horizontally to reach tabs on either side.
+
+It opens each store's list entries individually, including upcoming coupons, and waits for complete codes, discounts, conditions, and dates. It scrolls links clear of the app's fixed controls before opening them. Navigation attempts are bounded; unreachable tabs fail the check. The detail count must match the list count, and coupon identities must be unique before saving a snapshot. Incomplete or empty results preserve the previous data.
 
 Each device uses Android 16 Google Play ARM64, 3 GB RAM, and two CPU cores. Device names, ports, and storage are fixed per account:
 
