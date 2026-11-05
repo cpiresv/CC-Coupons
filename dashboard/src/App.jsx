@@ -1,5 +1,6 @@
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
+import { readState } from "./offline.js";
 
 const storeLogos = {
   Continente: "/stores/continente.png",
@@ -98,12 +99,6 @@ function StoreSelector({ stores, coupons, selected, account, onSelect }) {
       })}
     </div>
   );
-}
-async function readState(signal) {
-  const r = await fetch("/api/state", { signal });
-  if (!r.ok)
-    throw Error("Não foi possível carregar os cupões. Tente novamente.");
-  return r.json();
 }
 function CouponDetails({ coupon }) {
   return (
@@ -208,20 +203,35 @@ export default function App() {
   useEffect(() => {
     const controller = new AbortController();
     let timer;
+    let loading = false;
     const load = async () => {
+      if (loading) return;
+      clearTimeout(timer);
+      loading = true;
       try {
         setData(await readState(controller.signal));
         setError("");
       } catch (e) {
         if (e.name !== "AbortError") setError(e.message);
       } finally {
-        if (!controller.signal.aborted) timer = setTimeout(load, 15000);
+        loading = false;
+        if (!controller.signal.aborted && !document.hidden) timer = setTimeout(load, 15000);
       }
     };
+    const visibility = () => {
+      if (document.hidden) clearTimeout(timer);
+      else load();
+    };
     load();
+    window.addEventListener("online", load);
+    window.addEventListener("offline", load);
+    document.addEventListener("visibilitychange", visibility);
     return () => {
       controller.abort();
       clearTimeout(timer);
+      window.removeEventListener("online", load);
+      window.removeEventListener("offline", load);
+      document.removeEventListener("visibilitychange", visibility);
     };
   }, []);
   async function check() {
@@ -241,12 +251,15 @@ export default function App() {
             ? "Já existe uma verificação ou início de sessão em curso."
             : "Não foi possível iniciar a verificação. Tente novamente.",
         );
-      setData(await readState());
+      const updated = await readState();
+      setData(updated);
       if (result.results.some((r) => !r.ok))
         setError(
           "Uma conta não pôde ser verificada. Os últimos cupões confirmados foram preservados. Consulte o estado da conta.",
         );
-      else setNotice("Verificação concluída. Os cupões estão atualizados.");
+      else setNotice(updated.offline
+        ? "Verificação concluída no Mac. Volte a ligar para receber os cupões atualizados."
+        : "Verificação concluída. Os cupões estão atualizados.");
     } catch (e) {
       setError(e.message);
     } finally {
@@ -301,7 +314,7 @@ export default function App() {
             CC <b>Cupões</b>
           </span>
         </a>
-        <span className="local-label">Guardados neste Mac</span>
+        <span className="local-label">{data?.offline ? "Sem ligação ao Mac" : "Guardados no seu Mac"}</span>
       </header>
       <main>
         <div className="page-heading">
@@ -316,7 +329,7 @@ export default function App() {
             <button
               className="primary"
               onClick={check}
-              disabled={!data || running}
+              disabled={!data || running || data.offline}
             >
               <RefreshCw size={20} strokeWidth={1.7} aria-hidden="true" />
               {running ? "Verificação / sessão em curso" : "Verificar cupões"}
@@ -342,6 +355,15 @@ export default function App() {
         {notice && (
           <p role="status" className="message success">
             {notice}
+          </p>
+        )}
+        {data && (
+          <p role="status" className={data.offline || !data.saved ? "message offline" : "sync-status"}>
+            {data.offline
+              ? `Sem ligação ao Mac. A mostrar a cópia guardada em ${instant(data.savedAt)}. Os cupões podem ter mudado.`
+              : data.saved
+                ? `Última sincronização com o Mac: ${instant(data.savedAt)}.`
+                : "Não foi possível guardar os cupões neste dispositivo. O acesso sem ligação não está disponível."}
           </p>
         )}
         {!data && !error && (

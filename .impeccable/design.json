@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-04T20:54:25.301Z",
+  "generatedAt": "2026-11-05T16:03:28.663Z",
   "title": "Design System: CC Cupões",
   "extensions": {
     "colorMeta": {
@@ -350,9 +350,9 @@
       "name": "Primary check button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Manual check action; a disabled state reports a running check.",
-      "html": "<button class=\"ds-primary\"><svg aria-hidden=\"true\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 7v5h-5 M4 17v-5h5 M6 7a7 7 0 0 1 12-1l2 3 M4 15l2 3a7 7 0 0 0 12-1\"/></svg>Verificar cupões</button>",
-      "css": ".ds-primary{font-family:Manrope,sans-serif;font-size:15px;line-height:1.55;display:flex;align-items:center;gap:10px;min-height:44px;border:0;border-radius:8px;background:var(--green,#173e36);color:#fff;padding:14px 20px;font-weight:700;cursor:pointer}.ds-primary:hover:not(:disabled){background:#28594d}.ds-primary:focus-visible{outline:3px solid #b75b18;outline-offset:4px;}.ds-primary:disabled{opacity:.6;cursor:wait}@media(prefers-reduced-motion:no-preference){.ds-primary{transition:background-color 120ms ease-out}}"
+      "description": "Manual check action; disabled while checking, loading, or showing an offline copy.",
+      "html": "<button class=\"ds-primary\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-refresh-cw\" aria-hidden=\"true\"><path d=\"M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8\"></path><path d=\"M21 3v5h-5\"></path><path d=\"M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16\"></path><path d=\"M8 16H3v5\"></path></svg>Verificar cupões</button>",
+      "css": ".ds-primary{font-family:Manrope,sans-serif;font-size:15px;line-height:1.55;display:flex;align-items:center;gap:10px;min-height:44px;border:0;border-radius:8px;background:var(--green,#173e36);color:#fff;padding:14px 20px;font-weight:700;cursor:pointer}.ds-primary:hover:not(:disabled){background:#28594d}.ds-primary:focus-visible{outline:3px solid #b75b18;outline-offset:4px;}.ds-primary:disabled{opacity:.6;cursor:not-allowed}@media(prefers-reduced-motion:no-preference){.ds-primary{transition:background-color 120ms ease-out}}"
     },
     {
       "name": "Date reset button",
@@ -406,7 +406,7 @@
       "name": "Shared account strip",
       "kind": "card",
       "refersTo": "account-strip",
-      "description": "Two summaries share one sage surface. Sample labels are illustrative, not a live account report.",
+      "description": "Three summaries share one sage surface. Sample labels are illustrative, not a live account report.",
       "html": "<section class=\"ds-accounts\" aria-label=\"Estado das contas\"><div class=\"ds-account\"><div class=\"ds-account-title\"><h2 class=\"ds-account-name\">Conta 1</h2><span class=\"ds-connection\">Por ligar</span></div><p class=\"ds-account-time\">Última verificação: <strong class=\"ds-account-date\">Ainda não verificada</strong></p></div><div class=\"ds-account\"><div class=\"ds-account-title\"><h2 class=\"ds-account-name\">Conta 2</h2><span class=\"ds-connection\">Por ligar</span></div><p class=\"ds-account-time\">Última verificação: <strong class=\"ds-account-date\">Ainda não verificada</strong></p></div><div class=\"ds-account\"><div class=\"ds-account-title\"><h2 class=\"ds-account-name\">Conta 3</h2><span class=\"ds-connection\">Por ligar</span></div><p class=\"ds-account-time\">Última verificação: <strong class=\"ds-account-date\">Ainda não verificada</strong></p></div></section>",
       "css": ".ds-accounts{font-family:Manrope,sans-serif;font-size:15px;line-height:1.55;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:var(--sage,#eaf1e9);color:var(--ink,#203e36);border-radius:12px;overflow:hidden}.ds-account{padding:22px 26px;min-width:0}.ds-account+.ds-account{border-left:1px solid #c8d7ca}.ds-account-title{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}.ds-account-name{font-size:16.5px;margin:0}.ds-connection{font-size:10.8px;font-weight:700;display:flex;align-items:center;gap:7px;color:var(--amber,#795004)}.ds-connection:before{content:\"\";width:7px;height:7px;border-radius:50%;background:currentColor}.ds-account-time{font-size:12px;color:var(--muted,#5a6d65);margin:8px 0 0}.ds-account-date{font-weight:400;color:var(--ink,#203e36)}@media(max-width:760px){.ds-accounts{grid-template-columns:1fr}.ds-account{padding:20px}.ds-account+.ds-account{border-left:0;border-top:1px solid #c8d7ca}}"
     },
@@ -433,6 +433,13 @@
       "description": "Illustrative account-filtered event row with native before-and-after disclosure.",
       "html": "<article class=\"ds-history-row\"><time class=\"ds-history-time\">4 nov., 09:00</time><div><div class=\"ds-history-labels\"><span class=\"ds-history-kind\">Cupão alterado</span><span>Conta 1</span></div><h3 class=\"ds-history-title\">Oferta de exemplo</h3><p class=\"ds-history-copy\">Continente · 10% · até 10 nov. 2026</p><details><summary class=\"ds-history-summary\">Ver alteração</summary><dl class=\"ds-history-diff\"><dt>Antes</dt><dd>5% · Oferta de exemplo</dd><dt>Depois</dt><dd>10% · Oferta de exemplo</dd></dl></details></div></article>",
       "css": ".ds-history-row{font-family:Manrope,sans-serif;font-size:15px;line-height:1.55;display:grid;grid-template-columns:160px 1fr;gap:24px;padding:24px 0;border-bottom:1px solid var(--line,#d9e2db);color:var(--ink,#203e36)}.ds-history-time{font-size:12px;color:var(--muted,#5a6d65)}.ds-history-labels{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:10.8px;color:var(--muted,#5a6d65);margin-bottom:6px}.ds-history-kind{font-size:11.25px;font-weight:700;color:var(--ink,#203e36)}.ds-history-title{font-size:15px;line-height:1.65;margin:0;text-wrap:balance}.ds-history-copy{font-size:12px;margin:8px 0 0;color:var(--muted,#5a6d65)}.ds-history-summary{font-size:11.25px;color:var(--muted,#5a6d65);padding:10px 0;min-height:36px;list-style-position:inside;cursor:pointer}.ds-history-summary:hover{color:var(--ink,#203e36)}.ds-history-summary:focus-visible{outline:3px solid #b75b18;outline-offset:4px;}.ds-history-diff{font-size:12px;margin:16px 0}.ds-history-diff dt{color:var(--muted,#5a6d65);margin-top:8px}.ds-history-diff dd{margin:2px 0;color:var(--ink,#203e36);overflow-wrap:anywhere}@media(max-width:760px){.ds-history-row{grid-template-columns:1fr;gap:10px}}"
+    },
+    {
+      "name": "Offline notice",
+      "kind": "custom",
+      "description": "The saved-copy timestamp stays visible when the Mac is unreachable; this is an illustrative state.",
+      "html": "<p role=\"status\" class=\"ds-offline\">Sem ligação ao Mac. A mostrar a cópia guardada em 5/11, 09:00. Os cupões podem ter mudado.</p>",
+      "css": ".ds-offline{font-family:Manrope,sans-serif;font-size:12.75px;line-height:1.55;padding:15px 20px;margin:0 0 20px;border-radius:8px;background:var(--amber-bg,#fff4d4);color:var(--amber,#795004)}"
     }
   ],
   "narrative": {

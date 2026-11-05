@@ -22,7 +22,37 @@ npm start
 
 Open <http://127.0.0.1:4310> on the host Mac. For another device on the same local network, open a private network URL printed by `npm start`. Through Tailscale, use the host Mac's Tailscale IPv4 URL printed by the same command. The server listens on IPv4 interfaces and accepts localhost plus the host Mac's assigned private and Tailscale IPv4 addresses. Keep it running while using the dashboard. The daily monitor runs independently of the dashboard server.
 
+When `TAILSCALE_HOST` is configured, the server instead listens only on localhost. Use the private HTTPS address described below from your phone.
+
 Do not replace an existing `.env`. Account names, port, browser channel, headless mode, and daily time are configurable there. Restart the dashboard after changing `.env`; each scheduled process reads it afresh.
+
+## Phone installation through Tailscale
+
+Keep Tailscale connected on the Mac and phone, signed into the same network. Enable HTTPS certificates for the network. Tailscale Serve remains private; do not enable Funnel.
+
+1. Get the Mac's full `.ts.net` DNS name from `tailscale status --json`.
+2. Add `TAILSCALE_HOST=your-mac.your-tailnet.ts.net` to the existing `.env`.
+3. Run `npm run build` and restart the dashboard server.
+4. Run `tailscale serve --bg http://127.0.0.1:4310` (use your configured `PORT`).
+5. Open the printed HTTPS address in Safari on the iPhone.
+6. Choose **Share → Add to Home Screen**, enable **Open as Web App** if shown, and tap **Add**.
+7. Open the installed app once while connected, so it can save its own offline copy.
+
+On this Mac, the CLI is `/Applications/Tailscale.app/Contents/MacOS/Tailscale`. `serve status` shows the private HTTPS mapping. `serve --https=443 off` removes it without deleting account data. HTTPS certificates renew through Tailscale; the Mac's `.ts.net` certificate name is published in certificate transparency logs, but the dashboard remains private.
+
+The production build includes the manifest, Home Screen icons, and a versioned service worker. The service worker saves the app shell, fonts, and store logos. The dashboard saves the latest successful API response in this device's local storage. Development mode does not install a service worker. Close all dashboard tabs and the installed app, then reopen after a build to activate a waiting update.
+
+Without a connection, the dashboard shows the saved copy and its synchronization time. Each account retains its actual last successful coupon-check time. Expiry, upcoming status, and 48-hour badges use the current Lisbon date even offline. Checks are disabled offline and never queued for later. Live access resumes when connectivity returns. API errors do not overwrite the saved copy. The Mac must remain awake for new data and checks; offline offers can have changed since collection. External coupon images are not saved, but coupon text and conditions remain available.
+
+Offline data is private account information stored on that device. Clearing the site's storage removes it; the browser can also evict it. Safari and the installed web app can have separate storage, so load the installed app online before relying on it offline.
+
+This Mac uses the LaunchAgent `local.cc-coupons.server` to start the dashboard at login and restart it after exit. Its definition is `~/Library/LaunchAgents/local.cc-coupons.server.plist`; output goes to `data/server.log` and `data/server-error.log`. It runs separately from the daily collector. Restart it after changing configuration or server code:
+
+```sh
+launchctl kickstart -k "gui/$(id -u)/local.cc-coupons.server"
+```
+
+Do not restart during a check. `launchctl print "gui/$(id -u)/local.cc-coupons.server"` shows its state. Update its Node executable and project paths if either installation moves. To stop automatic serving, use `launchctl bootout "gui/$(id -u)/local.cc-coupons.server"` and remove its plist. This leaves the daily collector and all account data intact.
 
 ## Authentication
 
@@ -168,7 +198,7 @@ Everything private lives under `data/`, ignored by Git. `.env`, build output, br
 
 If the portal changes, keep the previous database, inspect the authenticated page, and update the extractor and its tests. A failed check never confirms an empty inventory.
 
-The HTTP server checks Host and Origin, refuses cross-site requests, and does not expose profile files or tokens. The dashboard has no password: devices that can reach it on the local network or through Tailscale can view coupons and trigger checks. Use a trusted network. The Mac must remain awake and the server must remain running. Its network address can change after reconnecting. Any program running as your macOS user can still access local data. Do not expose the server through port forwarding or a public proxy.
+The HTTP server checks Host and Origin, refuses cross-site requests, and does not expose profile files or tokens. With `TAILSCALE_HOST`, only loopback connections can reach the server; its exact HTTPS hostname is accepted from the local Tailscale proxy. Forwarded headers never expand the allowed hosts or origins. Tailscale network policy controls which devices can connect. Without that setting, devices on the local network can also access the dashboard. There is no separate app password: permitted devices can view coupons and trigger checks. The Mac must remain awake and the server must remain running. Any program running as your macOS user can still access local data. Do not expose the server through port forwarding, Funnel, or a public proxy.
 
 For development, run `npm start` and `npm run dev` in separate terminals. Vite proxies API traffic to the configured backend port and only accepts the two local development origins. Production serves the built dashboard directly from Express.
 
@@ -180,6 +210,8 @@ npm run build
 ```
 
 Tests cover date parsing/DST, expiry boundaries, observed markup in a real headless Chrome instance, failed extraction preservation, account separation, history, deduplication, process locks, Telegram delivery outcomes, the schedule gate, local API request checks, Android detail parsing and complete-store collection, and mobile store selection across coupon, comparison, and history views. Dashboard tests use synthetic offers. Telegram tests use a fake transport and do not contact recipients.
+
+PWA tests build the production app and restart a persistent headless browser offline. They verify installability, icon sizes, saved coupon details, account comparison, disabled checks, and recovery without replayed requests. Offline unit tests cover expired coupons, stale running state, unavailable storage, corrupt snapshots, and access denials. These checks do not prove installation on a physical iPhone.
 
 The live check establishes current portal access, not permanent authentication. Sessions can expire and need another manual SMS login. Actual Telegram delivery requires configured credentials and separate confirmation from Telegram.
 

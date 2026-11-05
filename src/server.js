@@ -2,7 +2,7 @@ import express from "express";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { root, port, selectAccounts } from "./config.js";
+import { root, port, tailscaleHost, selectAccounts } from "./config.js";
 import { openStore, dashboardData } from "./storage.js";
 import { runChecks } from "./monitor.js";
 import { isBusy } from "./lock.js";
@@ -21,16 +21,18 @@ function localHosts() {
   );
 }
 
-export function createApp(db, check = runChecks) {
+export function createApp(db, check = runChecks, privateHost = tailscaleHost) {
   const app = express();
   let running = false;
   app.disable("x-powered-by");
   app.use((req, res, next) => {
-    if (!localHosts().has(req.headers.host))
+    const privateHttps = privateHost && req.headers.host === privateHost &&
+      ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress);
+    if (!privateHttps && !localHosts().has(req.headers.host))
       return res.status(403).json({ error: "Local network access only" });
     if (
       req.headers.origin &&
-      req.headers.origin !== `http://${req.headers.host}`
+      req.headers.origin !== `${privateHttps ? "https" : "http"}://${req.headers.host}`
     )
       return res.status(403).json({ error: "Origin rejected" });
     if (req.headers["sec-fetch-site"] === "cross-site")
@@ -42,6 +44,8 @@ export function createApp(db, check = runChecks) {
         "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https://appcartao.cdn.mc.pt; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
     });
     if (req.path.startsWith("/api")) res.set("Cache-Control", "no-store");
+    if (["/", "/index.html", "/sw.js", "/manifest.webmanifest"].includes(req.path))
+      res.set("Cache-Control", "no-cache");
     next();
   });
   app.use(express.json({ limit: "4kb" }));
@@ -93,8 +97,9 @@ export function createApp(db, check = runChecks) {
 }
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const db = openStore();
-  const server = createApp(db).listen(port, "0.0.0.0", () => {
-    for (const host of localHosts()) console.log(`Dashboard: http://${host}`);
+  const server = createApp(db).listen(port, tailscaleHost ? "127.0.0.1" : "0.0.0.0", () => {
+    if (tailscaleHost) console.log(`Dashboard: https://${tailscaleHost}`);
+    else for (const host of localHosts()) console.log(`Dashboard: http://${host}`);
   });
   server.on("error", () => {
     console.error("Dashboard failed to bind the configured port.");

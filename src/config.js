@@ -21,6 +21,9 @@ export const portalUrl = "https://cartaocontinente.pt/IniciarSessao.aspx";
 export const port = Number(process.env.PORT || 4310);
 if (!Number.isInteger(port) || port < 1024 || port > 65535)
   throw new Error("Invalid PORT");
+export const tailscaleHost = process.env.TAILSCALE_HOST || "";
+if (tailscaleHost && !/^[a-z0-9-]+\.[a-z0-9-]+\.ts\.net$/.test(tailscaleHost))
+  throw new Error("TAILSCALE_HOST must be this Mac's full .ts.net hostname");
 export function selectAccounts(id = "all") {
   if (id === "all") return accounts;
   const account = accounts.find((a) => a.id === id);

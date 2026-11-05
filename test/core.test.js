@@ -328,7 +328,8 @@ test("LAN and Tailscale API accepts this Mac's addresses and rejects foreign hos
   }));
   const db = openStore(":memory:");
   let resolve;
-  const server = createApp(db, () => new Promise((r) => (resolve = r))).listen(
+  const privateHost = "coupon-mac.tail1234.ts.net";
+  const server = createApp(db, () => new Promise((r) => (resolve = r)), privateHost).listen(
     0,
     "127.0.0.1",
   );
@@ -388,6 +389,20 @@ test("LAN and Tailscale API accepts this Mac's addresses and rejects foreign hos
       403,
     );
     assert.equal((await rawFetch(url + "/api/state", { headers })).status, 200);
+    assert.equal((await rawFetch(url + "/api/state", {
+      headers: { Host: privateHost, Origin: `https://${privateHost}` },
+    })).status, 200);
+    for (const origin of [`http://${privateHost}`, "https://evil.test", "null"]) {
+      assert.equal((await rawFetch(url + "/api/state", {
+        headers: { Host: privateHost, Origin: origin, "X-Forwarded-Proto": "https" },
+      })).status, 403);
+    }
+    assert.equal((await rawFetch(url + "/api/state", {
+      headers: { Host: "other-mac.tail1234.ts.net", Origin: `https://${privateHost}` },
+    })).status, 403);
+    assert.equal((await rawFetch(url + "/api/state", {
+      headers: { Host: privateHost, Origin: `https://${privateHost}`, "Sec-Fetch-Site": "cross-site" },
+    })).status, 403);
     assert.equal(
       (await rawFetch(url + "/api/state", {
         headers: { ...headers, "Sec-Fetch-Site": "cross-site" },
