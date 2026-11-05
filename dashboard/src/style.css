@@ -726,11 +726,23 @@ footer > div {
     gap: 8px;
   }
 }
-@media (display-mode: standalone) and (pointer: coarse) {
-  .topbar {
-    /* Keep the header text clear of the iOS status bar's blurred edge. */
-    box-sizing: content-box;
-    padding-top: 32px;
+.ios-status-edge {
+  display: none;
+}
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) {
+    .ios-status-edge {
+      /* WebKit samples fixed backgrounds taller than 10px for its status bar. */
+      display: block;
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 1;
+      height: 11px;
+      pointer-events: none;
+      background-color: var(--green);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
   }
 }
 @media (prefers-reduced-motion: no-preference) {
