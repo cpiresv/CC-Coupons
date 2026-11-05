@@ -1,3 +1,4 @@
+import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const storeLogos = {
@@ -45,8 +46,6 @@ const instant = (value) =>
     : "Ainda não verificada";
 function Icon({ name }) {
   const paths = {
-    refresh:
-      "M20 7v5h-5 M4 17v-5h5 M6 7a7 7 0 0 1 12-1l2 3 M4 15l2 3a7 7 0 0 0 12-1",
     arrow: "M5 12h14 M13 6l6 6-6 6",
     ticket:
       "M3 5h18v5a2 2 0 0 0 0 4v5H3v-5a2 2 0 0 0 0-4V5 M15 5v3 M15 11v2 M15 16v3",
@@ -319,7 +318,7 @@ export default function App() {
               onClick={check}
               disabled={!data || running}
             >
-              <Icon name="refresh" />
+              <RefreshCw size={20} strokeWidth={1.7} aria-hidden="true" />
               {running ? "Verificação / sessão em curso" : "Verificar cupões"}
             </button>
             <small>
