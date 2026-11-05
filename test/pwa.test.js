@@ -43,10 +43,12 @@ test("Built PWA survives an offline browser restart and reconnects without repla
     const manifest = await page.evaluate(async () =>
       (await fetch(document.querySelector('link[rel="manifest"]').href)).json());
     assert.equal(manifest.display, "standalone");
-    for (const icon of manifest.icons) {
+    const touchIcon = await page.locator('link[rel="apple-touch-icon"]').getAttribute("href");
+    for (const { src, sizes } of [...manifest.icons, { src: touchIcon, sizes: "180x180" }]) {
       assert.equal(await page.evaluate(async (src) => {
-        const image = new Image(); image.src = src; await image.decode(); return image.width;
-      }, icon.src), Number(icon.sizes.split("x")[0]));
+        const image = new Image(); image.src = src; await image.decode();
+        return `${image.naturalWidth}x${image.naturalHeight}`;
+      }, src), sizes);
     }
     const cdp = await context.newCDPSession(page);
     const { installabilityErrors } = await cdp.send("Page.getInstallabilityErrors");

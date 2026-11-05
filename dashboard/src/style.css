@@ -726,6 +726,13 @@ footer > div {
     gap: 8px;
   }
 }
+@media (display-mode: standalone) and (pointer: coarse) {
+  .topbar {
+    /* Keep the header text clear of the iOS status bar's blurred edge. */
+    box-sizing: content-box;
+    padding-top: 32px;
+  }
+}
 @media (prefers-reduced-motion: no-preference) {
   button {
     transition: background-color 120ms ease-out;
