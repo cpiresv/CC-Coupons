@@ -121,13 +121,16 @@ export function couponNavigationSwipe(nodes, id) {
     swipeX, top + (bottom - top) * (up ? .65 : .35)].map(Math.round);
 }
 
-async function navigate(device, node, predicate) {
+async function navigate(device, nodes, node, predicate) {
   for (let attempt = 0; attempt < 3; attempt++) {
-    await device.tap(node);
-    try { return await device.waitFor(predicate, { timeout: 15000 }); }
+    try {
+      await device.tap(node, nodes);
+      return await device.waitFor(predicate, { timeout: 15000 });
+    }
     catch (error) {
-      if (error.code !== "LAYOUT_CHANGED" || attempt === 2) throw error;
-      const nodes = await device.read();
+      const missingTarget = error.code === "ANDROID_UNAVAILABLE" && /No matching elements/.test(error.cause?.stderr || "");
+      if ((error.code !== "LAYOUT_CHANGED" && !missingTarget) || attempt === 2) throw error;
+      nodes = await device.read();
       if (predicate(nodes)) return nodes;
       node = nodes.find((n) => n["resource-id"] === node["resource-id"]);
       if (!node) return device.waitFor(predicate);
@@ -137,23 +140,22 @@ async function navigate(device, node, predicate) {
 
 export async function collectAndroidCoupons(device) {
   let nodes = await device.waitFor((ns) => ns.some((n) => /-CouponsLink$/.test(n["resource-id"] || "")));
-  nodes = await navigate(device, nodes.find((n) => /-CouponsLink$/.test(n["resource-id"] || "")), (ns) => ns.some((n) => /-SelectInsigniaLink2$/.test(n["resource-id"] || "")));
+  nodes = await navigate(device, nodes, nodes.find((n) => /-CouponsLink$/.test(n["resource-id"] || "")), (ns) => ns.some((n) => /-SelectInsigniaLink2$/.test(n["resource-id"] || "")));
   const brands = nodes.filter((n) => /-SelectInsigniaLink2$/.test(n["resource-id"] || "")).map(label);
   if (!brands.length || brands.length > 30 || new Set(brands).size !== brands.length)
     throw new CheckError("LAYOUT_CHANGED");
   const coupons = [];
   for (const brand of brands) {
-    nodes = await device.read();
     const tab = nodes.find((n) => /-SelectInsigniaLink2$/.test(n["resource-id"] || "") && label(n) === brand);
     if (!tab) throw new CheckError("LAYOUT_CHANGED");
-    nodes = await navigate(device, tab, (ns) => ns.some((n) => /-seeDetail2?$/.test(n["resource-id"] || "")) && ns.some((n) => label(n).startsWith("Desconto ") && label(n).includes(`na marca ${brand}`)));
+    nodes = await navigate(device, nodes, tab, (ns) => ns.some((n) => /-seeDetail2?$/.test(n["resource-id"] || "")) && ns.some((n) => label(n).startsWith("Desconto ") && label(n).includes(`na marca ${brand}`)));
     const expected = new Set(nodes.filter((n) => /-seeDetail2?$/.test(n["resource-id"] || "")).map((n) => n["resource-id"])).size;
     if (!expected || expected > 100) throw new CheckError("UNVERIFIED_EMPTY_STATE");
     for (let index = 0; index < expected; index++) {
       const links = nodes.filter((n) => /-seeDetail2?$/.test(n["resource-id"] || ""));
       if (links.length !== expected) throw new CheckError("LAYOUT_CHANGED");
       let coupon;
-      nodes = await navigate(device, links[index], (ns) => {
+      nodes = await navigate(device, nodes, links[index], (ns) => {
         try {
           if (carousel(ns).total !== expected) return false;
           if (!ns.some((n) => n["resource-id"]?.endsWith("-Back") && label(n) === "Voltar página anterior" && !n.hidden && !n["off-screen"])) return false;
@@ -164,12 +166,42 @@ export async function collectAndroidCoupons(device) {
         } catch { return false; }
       });
       coupons.push(coupon);
-      nodes = await navigate(device, nodes.find((n) => n["resource-id"]?.endsWith("-Back") && label(n) === "Voltar página anterior" && !n.hidden && !n["off-screen"]), (ns) => ns.some((n) => label(n) === "CouponsList") && ns.filter((n) => /-seeDetail2?$/.test(n["resource-id"] || "")).length === expected);
+      nodes = await navigate(device, nodes, nodes.find((n) => n["resource-id"]?.endsWith("-Back") && label(n) === "Voltar página anterior" && !n.hidden && !n["off-screen"]), (ns) => ns.some((n) => label(n) === "CouponsList") && ns.filter((n) => /-seeDetail2?$/.test(n["resource-id"] || "")).length === expected);
     }
   }
   if (new Set(coupons.map((c) => c.key)).size !== coupons.length)
     throw new CheckError("DUPLICATE_COUPONS");
   return coupons;
+}
+
+export async function waitForAndroid(device, predicate, { timeout = 45000, manualLogin = false } = {}) {
+  const until = Date.now() + timeout;
+  let readError, networkRetries = 0;
+  while (Date.now() < until) {
+    let nodes;
+    try {
+      nodes = await device.read();
+      readError = undefined;
+    } catch (error) {
+      if (error.code !== "TIMEOUT" && !(error.code === "ANDROID_UNAVAILABLE" &&
+          /Could not obtain layout root/.test(error.cause?.stderr || ""))) throw error;
+      readError = error;
+      await pause(500);
+      continue;
+    }
+    if (nodes.some((n) => /Code:\s*\((?:CECE001|OEAE001)\)/i.test(label(n)) && /connection has timed out|Não estamos a conseguir estabelecer ligação/i.test(label(n)))) {
+      readError = new CheckError("NETWORK_ERROR");
+      const retry = nodes.find((n) => label(n) === "Tentar Novamente" && !n.hidden && !n["off-screen"]);
+      if (!retry || networkRetries++ >= 2) throw readError;
+      await device.tap(retry, nodes);
+      continue;
+    }
+    if (predicate(nodes)) return nodes;
+    if (!manualLogin && nodes.some((n) => /^(Iniciar sessão|Entrar|Número de telemóvel|Código SMS)$/iu.test(label(n))))
+      throw new CheckError("AUTH_REQUIRED");
+    await pause(500);
+  }
+  throw readError || new CheckError("LAYOUT_CHANGED");
 }
 
 export async function openAndroid(accountId, { headed = false } = {}) {
@@ -219,7 +251,7 @@ export async function openAndroid(accountId, { headed = false } = {}) {
       const log = await open(path.join(directory, `${accountId}-emulator.log`), "a", 0o600);
       try {
         // Separate virtual networks avoid shared Wi-Fi conflicts between accounts.
-        child = spawn(emulator, ["-avd", avd, "-port", port, "-feature", "-WiFiPacketStream", "-no-metrics", "-crash-report-mode", "never", "-no-snapshot", ...(!headed ? ["-no-window"] : []), "-no-audio", "-no-boot-anim", "-camera-back", "none", "-camera-front", "none", "-timezone", "Europe/Lisbon"], { env, stdio: ["ignore", log.fd, log.fd] });
+        child = spawn(emulator, ["-avd", avd, "-port", port, "-gpu", "host", "-feature", "-WiFiPacketStream", "-no-metrics", "-crash-report-mode", "never", "-no-snapshot", ...(!headed ? ["-no-window"] : []), "-no-audio", "-no-boot-anim", "-camera-back", "none", "-camera-front", "none", "-timezone", "Europe/Lisbon"], { env, stdio: ["ignore", log.fd, log.fd] });
         await new Promise((resolve, reject) => { child.once("spawn", resolve); child.once("error", reject); });
         owned = true;
       } finally { await log.close(); }
@@ -250,28 +282,27 @@ export async function openAndroid(accountId, { headed = false } = {}) {
         if (raw.length > 10 * 1024 * 1024) throw new CheckError("LAYOUT_CHANGED");
         return layoutNodes(JSON.parse(raw));
       },
-      async waitFor(predicate, { timeout = 45000, manualLogin = false } = {}) {
-        const until = Date.now() + timeout;
-        while (Date.now() < until) {
-          const nodes = await device.read();
-          if (predicate(nodes)) return nodes;
-          if (!manualLogin && nodes.some((n) => /^(Iniciar sessão|Entrar|Número de telemóvel|Código SMS)$/iu.test(label(n))))
-            throw new CheckError("AUTH_REQUIRED");
-          await pause(500);
-        }
-        throw new CheckError("LAYOUT_CHANGED");
-      },
-      async tap(node) {
-        if (!node || !/^[\w:-]+$/.test(node["resource-id"] || "")) throw new CheckError("LAYOUT_CHANGED");
+      waitFor: (predicate, options) => waitForAndroid(device, predicate, options),
+      async tap(node, nodes) {
+        if (!node || !/^[\w:/-]+$/.test(node["resource-id"] || "")) throw new CheckError("LAYOUT_CHANGED");
         const id = node["resource-id"];
         const listLink = /-(seeDetail2?|SelectInsigniaLink2)$/.test(id);
         for (let attempt = 0; listLink || node.hidden || node["off-screen"]; attempt++) {
           if (attempt >= 20 || !/-(seeDetail2?|SelectInsigniaLink2)$/.test(id)) throw new CheckError("LAYOUT_CHANGED");
-          const swipe = couponNavigationSwipe(await device.read(), id);
+          nodes ||= await device.read();
+          let swipe;
+          try { swipe = couponNavigationSwipe(nodes, id); }
+          catch (error) {
+            if (error.code !== "LAYOUT_CHANGED") throw error;
+            // List entries can appear before their container has finished laying out.
+            nodes = await device.read();
+            swipe = couponNavigationSwipe(nodes, id);
+          }
           if (!swipe) break;
           await adb(["shell", "input", "touchscreen", "swipe", ...swipe.map(String), "1000"]);
+          nodes = undefined;
         }
-        await android(["input", `--device=${serial}`, "tap", "--wait=10000", `id=/^${node["resource-id"]}$/`]);
+        await android(["input", `--device=${serial}`, "tap", "--wait=10000", `id=/^${node["resource-id"].replaceAll("/", "\\/")}$/`]);
       },
       async screenshot() {
         try {

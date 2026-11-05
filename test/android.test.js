@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { androidTarget, collectAndroidCoupons, couponNavigationSwipe, couponTapRange, layoutNodes, parseAndroidCoupon } from "../src/android.js";
+import { androidTarget, collectAndroidCoupons, couponNavigationSwipe, couponTapRange, layoutNodes, parseAndroidCoupon, waitForAndroid } from "../src/android.js";
 import { openStore, saveSnapshot, dashboardData } from "../src/storage.js";
 import { CheckError } from "../src/extraction.js";
 
@@ -16,6 +16,45 @@ test("Every Android account has separate device storage and port; Account 3 reta
 });
 
 const node = (id, text, extra = {}) => ({ "resource-id": id, text, ...extra });
+test("Readiness waits recover temporary reader failures without restarting Android", async () => {
+  const rootError = Object.assign(new CheckError("ANDROID_UNAVAILABLE"), { cause: { stderr: "Could not obtain layout root\n" } });
+  const screen = [node("b30-CouponsLink", "Cupões")];
+  const reads = [new CheckError("TIMEOUT"), rootError, screen];
+  const device = { async read() {
+    const result = reads.shift();
+    if (result instanceof Error) throw result;
+    return result;
+  } };
+  assert.deepEqual(await waitForAndroid(device, ns => ns === screen), screen);
+  assert.equal(reads.length, 0);
+  await assert.rejects(waitForAndroid({ read: async () => { throw rootError; } }, () => false, { timeout: 50 }), { code: "ANDROID_UNAVAILABLE" });
+  await assert.rejects(waitForAndroid({ read: async () => { throw new CheckError("ANDROID_DEVICE_MISMATCH"); } }, () => false), { code: "ANDROID_DEVICE_MISMATCH" });
+  await assert.rejects(waitForAndroid({ read: async () => [node("login", "Iniciar sessão")] }, () => false), { code: "AUTH_REQUIRED" });
+  await assert.rejects(waitForAndroid({ read: async () => [] }, () => false, { timeout: 50 }), { code: "LAYOUT_CHANGED" });
+});
+
+test("Observed connection-error dialogs retry in the app, with a fixed limit", async () => {
+  const screen = [node("b30-CouponsLink", "Cupões")];
+  const retry = node("android:id/button1", "Tentar Novamente");
+  let dialog = [node("android:id/message", "Code:(CECE001) The connection has timed out"), retry];
+  let taps = 0;
+  const device = {
+    read: async () => taps ? screen : [...dialog, ...screen],
+    tap: async n => { assert.equal(n, retry); taps++; },
+  };
+  assert.deepEqual(await waitForAndroid(device, ns => ns.some(n => n.text === "Cupões")), screen);
+  assert.equal(taps, 1);
+  taps = 0;
+  device.read = async () => dialog;
+  await assert.rejects(waitForAndroid(device, () => false), { code: "NETWORK_ERROR" });
+  assert.equal(taps, 2);
+  taps = 0;
+  dialog = [node("android:id/message", "Não estamos a conseguir estabelecer ligação, por favor, tente mais tarde. Code:(OEAE001)"), retry];
+  device.read = async () => taps ? screen : dialog;
+  assert.deepEqual(await waitForAndroid(device, ns => ns === screen), screen);
+  assert.equal(taps, 1);
+});
+
 test("Coupon navigation rejects clipped links but permits the last item above fixed controls", () => {
   const range = couponTapRange([0, 252, 1082, 2402], 1981);
   const safe = (y) => y > range[0] && y < range[1];
@@ -127,7 +166,8 @@ function fakeDevice({ duplicate = false, wrongTotal = false, ignoredTap = false,
       if (!predicate(ns)) throw new CheckError("LAYOUT_CHANGED");
       return ns;
     },
-    async tap(n) {
+    async tap(n, snapshot) {
+      assert.ok(snapshot.includes(n), "Navigation must reuse the latest verified screen");
       assert.ok(n); const id = n["resource-id"]; taps.push(id);
       if (id.endsWith("-Back") && ignoredBacks-- > 0) return;
       if (id.endsWith("-CouponsLink") || id.endsWith("-Back")) {
@@ -150,6 +190,22 @@ function fakeDevice({ duplicate = false, wrongTotal = false, ignoredTap = false,
     },
   };
 }
+
+test("Navigation handles a vanished target when the app has already changed screens, with bounded retries", async () => {
+  const error = Object.assign(new CheckError("ANDROID_UNAVAILABLE"), { cause: { stderr: "No matching elements\n" } });
+  const device = fakeDevice(), tap = device.tap;
+  let stale = true;
+  device.tap = async (...args) => {
+    await tap(...args);
+    if (stale) { stale = false; throw error; }
+  };
+  assert.equal((await collectAndroidCoupons(device)).length, 3);
+  const stuck = fakeDevice();
+  let attempts = 0;
+  stuck.tap = async () => { attempts++; throw error; };
+  await assert.rejects(collectAndroidCoupons(stuck), { code: "ANDROID_UNAVAILABLE" });
+  assert.equal(attempts, 3);
+});
 
 test("Collection discovers all seven stores and queues new coupons after navigating off-screen tabs", async () => {
   const device = fakeDevice({ overflowStores: true });

@@ -78,7 +78,7 @@ A SQLite process lock covers login, checks, scheduling, and notification dispatc
 
 All account checks read the official app's accessibility tree. The same manual check, dashboard button, daily schedule, history, comparison, and Telegram outbox process its coupons. The collector discovers store names from the full accessibility tree, including off-screen tabs. It reveals the store row vertically, then swipes horizontally to reach tabs on either side.
 
-It opens each store's list entries individually, including upcoming coupons, and waits for complete codes, discounts, conditions, and dates. It scrolls links clear of the app's fixed controls before opening them. Navigation attempts are bounded; unreachable tabs fail the check. The detail count must match the list count, and coupon identities must be unique before saving a snapshot. Incomplete or empty results preserve the previous data.
+It opens each store's list entries individually, including upcoming coupons, and waits for complete codes, discounts, conditions, and dates. It scrolls links clear of the app's fixed controls before opening them. Navigation attempts are bounded; unreachable tabs fail the check. The detail count must match the list count, and coupon identities must be unique before saving a snapshot. Incomplete or empty results preserve the previous data. It reuses the verified screen layout for visibility checks and reads a fresh layout after scrolling or incomplete positioning.
 
 Each device uses Android 16 Google Play ARM64, 3 GB RAM, and two CPU cores. Device names, ports, and storage are fixed per account:
 
@@ -99,11 +99,15 @@ npm run check -- account-3   # Refreshes the dashboard and dispatches notificati
 
 Checks start the selected accounts’ devices without windows and close them afterward. Manual and scheduled checks run the selected accounts simultaneously, with separate device storage. Checking all accounts runs three emulators at once and uses more memory than checking one account. The operation lock stays held until every device finishes, and notifications are sent afterward.
 
+The monitor uses host graphics (`-gpu host`). Automatic graphics selection used SwiftShader software rendering for hidden emulators on this Mac, adding substantial CPU load during parallel checks.
+
 If a device is already open, checks reuse it and leave it open. Do not interact with it during a check. The collector checks the device identity before accessing the app. Close an existing emulator before running the login command, or sign in there and run a check.
 
 Emulators started by the monitor use separate virtual networks (`-feature -WiFiPacketStream`), avoiding connection timeouts seen with these devices on the shared Wi-Fi network. This uses Android’s documented [isolated networking mode](https://developer.android.com/studio/run/emulator-networking-interconnect).
 
 Cold starts use `-no-snapshot`, preserving installed apps and authentication data. The collector flushes Android storage before shutting down a device it started. Quick Boot previously restored a blank sign-in screen. Local commands disable wireless discovery with `ADB_MDNS=0` because the installed ADB discovery service crashed on this Mac. These settings do not change regular Chrome. Every account keeps separate Android storage.
+
+While waiting for a screen, temporary reader timeouts and missing layout roots retry within the readiness deadline without rebooting the device. The observed `CECE001` and `OEAE001` connection-error dialogs use the app's “Tentar Novamente” button at most twice within that deadline. Persistent failures still use the bounded account retry policy.
 
 The app does not expose image URLs in its accessibility tree. The dashboard shows the discount text and coupon conditions without an invented image. Activation and usage remain unknown; the collector never selects, activates, archives, or redeems coupons.
 
