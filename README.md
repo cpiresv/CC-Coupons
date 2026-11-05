@@ -97,7 +97,11 @@ npm run login -- account-3   # Opens the configured device for manual login
 npm run check -- account-3   # Refreshes the dashboard and dispatches notifications
 ```
 
-Checks start the selected account’s device without a window and close it afterward. Checks run sequentially, so scheduled checks do not require three running emulators. If the device is already open, checks reuse it and leave it open. Do not interact with it during a check. The collector checks the device identity before accessing the app. Close an existing emulator before running the login command, or sign in there and run a check.
+Checks start the selected accounts’ devices without windows and close them afterward. Manual and scheduled checks run the selected accounts simultaneously, with separate device storage. Checking all accounts runs three emulators at once and uses more memory than checking one account. The operation lock stays held until every device finishes, and notifications are sent afterward.
+
+If a device is already open, checks reuse it and leave it open. Do not interact with it during a check. The collector checks the device identity before accessing the app. Close an existing emulator before running the login command, or sign in there and run a check.
+
+Emulators started by the monitor use separate virtual networks (`-feature -WiFiPacketStream`), avoiding connection timeouts seen with these devices on the shared Wi-Fi network. This uses Android’s documented [isolated networking mode](https://developer.android.com/studio/run/emulator-networking-interconnect).
 
 Cold starts use `-no-snapshot`, preserving installed apps and authentication data. The collector flushes Android storage before shutting down a device it started. Quick Boot previously restored a blank sign-in screen. Local commands disable wireless discovery with `ADB_MDNS=0` because the installed ADB discovery service crashed on this Mac. These settings do not change regular Chrome. Every account keeps separate Android storage.
 
@@ -116,7 +120,7 @@ npm run check -- account-2
 npm run check -- account-3
 ```
 
-The dashboard's account filter also selects the account for its check button. A failed account does not prevent the remaining accounts from being checked. Network failures receive at most three attempts, separated by 5 and 10 seconds. Authentication and layout failures stop without repeated scraping.
+The dashboard's account filter also selects the account for its check button. A failed account does not prevent the remaining accounts from being checked. Network and Android control failures receive at most three attempts, separated by 5 and 10 seconds. Authentication and layout failures stop without repeated scraping.
 
 If the portal returns its homepage, the checker follows the observed account menu to Cupões. A resulting login form is reported as an expired session, instead of a layout change.
 

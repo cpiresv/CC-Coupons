@@ -42,7 +42,6 @@ export function safeCode(error) {
 export async function runChecks(db, id = "all", { scheduledDay } = {}) {
   const selected = selectAccounts(id);
   const release = acquireLock(db);
-  const results = [];
   try {
     if (scheduledDay) {
       const last = db
@@ -53,7 +52,9 @@ export async function runChecks(db, id = "all", { scheduledDay } = {}) {
         "INSERT INTO metadata VALUES('scheduled_day',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
       ).run(scheduledDay);
     }
-    for (const account of selected) {
+    // Keep the lock until every device has finished, even if a worker throws.
+    const checks = await Promise.allSettled(selected.map(async (account) => {
+      await log("check_started", account.id, undefined, undefined, account.source);
       let succeeded = false;
       for (let attempt = 0; attempt < 3; attempt++) {
         let profile;
@@ -77,19 +78,19 @@ export async function runChecks(db, id = "all", { scheduledDay } = {}) {
             await saveSession(profile.context, account.id);
           }
           const changes = saveSnapshot(db, account.id, coupons);
-          results.push({
+          await log("check_success", account.id, undefined, coupons.length, profile?.source || account.source);
+          succeeded = true;
+          return {
             accountId: account.id,
             ok: true,
             count: coupons.length,
             changes: changes.length,
-          });
-          await log("check_success", account.id, undefined, coupons.length, profile?.source || account.source);
-          succeeded = true;
-          break;
+          };
         } catch (error) {
           const code = safeCode(error);
           const retryable = [
             "TIMEOUT",
+            "ANDROID_UNAVAILABLE",
             "NETWORK_ERROR",
             "SITE_UNAVAILABLE",
             "CHECK_FAILED",
@@ -97,9 +98,8 @@ export async function runChecks(db, id = "all", { scheduledDay } = {}) {
           if (!retryable || attempt === 2) {
             if (page) await debugScreenshot(page, account.id);
             recordFailure(db, account.id, code);
-            results.push({ accountId: account.id, ok: false, code });
             await log("check_failed", account.id, code, undefined, profile?.source || account.source);
-            break;
+            return { accountId: account.id, ok: false, code };
           }
         } finally {
           if (profile) {
@@ -113,9 +113,12 @@ export async function runChecks(db, id = "all", { scheduledDay } = {}) {
           setTimeout(resolve, (attempt + 1) * 5000),
         );
       }
-      if (!succeeded && !results.some((r) => r.accountId === account.id))
-        throw new Error("CHECK_FAILED");
-    }
+      throw new Error("CHECK_FAILED");
+    }));
+    const results = checks.map((check) => {
+      if (check.status === "rejected") throw check.reason;
+      return check.value;
+    });
     queueSavedExpiryReminders(db);
     await flushNotifications(db);
     return results;

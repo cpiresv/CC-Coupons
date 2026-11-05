@@ -218,7 +218,8 @@ export async function openAndroid(accountId, { headed = false } = {}) {
     if (!devices.split("\n").some((line) => line.startsWith(`${serial}\t`))) {
       const log = await open(path.join(directory, `${accountId}-emulator.log`), "a", 0o600);
       try {
-        child = spawn(emulator, ["-avd", avd, "-port", port, "-no-metrics", "-crash-report-mode", "never", "-no-snapshot", ...(!headed ? ["-no-window"] : []), "-no-audio", "-no-boot-anim", "-camera-back", "none", "-camera-front", "none", "-timezone", "Europe/Lisbon"], { env, stdio: ["ignore", log.fd, log.fd] });
+        // Separate virtual networks avoid shared Wi-Fi conflicts between accounts.
+        child = spawn(emulator, ["-avd", avd, "-port", port, "-feature", "-WiFiPacketStream", "-no-metrics", "-crash-report-mode", "never", "-no-snapshot", ...(!headed ? ["-no-window"] : []), "-no-audio", "-no-boot-anim", "-camera-back", "none", "-camera-front", "none", "-timezone", "Europe/Lisbon"], { env, stdio: ["ignore", log.fd, log.fd] });
         await new Promise((resolve, reject) => { child.once("spawn", resolve); child.once("error", reject); });
         owned = true;
       } finally { await log.close(); }
@@ -291,7 +292,7 @@ export async function checkAndroid(accountId) {
   try { return await collectAndroidCoupons(device); }
   catch (error) {
     await device.screenshot();
-    await writeFile(path.join(dataDir, "android", `${accountId}-last-error.json`), JSON.stringify({ code: error.code, stack: error.stack }), { mode: 0o600 }).catch(() => {});
+    await writeFile(path.join(dataDir, "android", `${accountId}-last-error.json`), JSON.stringify({ code: error.code, stack: error.stack, detail: error.cause?.stderr }), { mode: 0o600 }).catch(() => {});
     throw error;
   }
   finally { await device.close(); }

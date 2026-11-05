@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Local Cartao Continente coupon monitor",
   "scripts": {
-    "test": "node --test test/*.test.js",
+    "test": "node --experimental-test-module-mocks --test test/*.test.js",
     "check": "node src/cli.js check",
     "login": "node src/cli.js login",
     "import-chrome": "node src/cli.js import-chrome",

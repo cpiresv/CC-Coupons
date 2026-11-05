@@ -14,7 +14,7 @@ Shoppers check personalized offers across three Cartão Continente accounts befo
 Monitor the accounts independently, compare current offers, retain changes, and notify without duplicates.
 
 ## Operating Context
-Local macOS application. Daily scheduled headless checks and manual checks. Each account uses the official app in its own Android emulator. Checks run sequentially and preserve separate device storage. Manual authentication and SMS happen in the relevant website or app. Europe/Lisbon dates.
+Local macOS application. Daily scheduled headless checks and manual checks. Each account uses the official app in its own Android emulator. Checks run simultaneously and preserve separate device storage. Manual authentication and SMS happen in the relevant website or app. Europe/Lisbon dates.
 
 ## Capabilities and Constraints
 Never bypass authentication or store passwords or SMS codes. Keep profiles and personal data local and outside Git. Failed extraction must preserve the last successful snapshot. Web collectors cannot expose app-exclusive offers. Android collection reads complete coupon details from each visible store and preserves previous data if collection is incomplete.
