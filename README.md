@@ -58,6 +58,8 @@ launchctl kickstart -k "gui/$(id -u)/local.cc-coupons.server"
 
 Do not restart during a check. `launchctl print "gui/$(id -u)/local.cc-coupons.server"` shows its state. Update its Node executable and project paths if either installation moves. To stop automatic serving, use `launchctl bootout "gui/$(id -u)/local.cc-coupons.server"` and remove its plist. This leaves the daily collector and all account data intact.
 
+Set `ProcessType` to `Interactive` in both LaunchAgents. The Android emulator and accessibility reader inherit the job's resource limits. `Background` priority caused Android's System UI to stop responding during startup, leaving checks on the welcome screen. `Interactive` gives these processes normal application resources; it does not open emulator windows. Reinstall the daily job with `npm run schedule -- install` after this setting changes. For the server, unload and bootstrap its plist after editing it; `kickstart` alone does not reload plist settings.
+
 ## Authentication
 
 ```sh

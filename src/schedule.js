@@ -39,7 +39,7 @@ export function plist() {
 <key>WorkingDirectory</key><string>${xml(root)}</string>
 <key>StartInterval</key><integer>300</integer>
 <key>RunAtLoad</key><true/>
-<key>ProcessType</key><string>Background</string>
+<key>ProcessType</key><string>Interactive</string>
 <key>StandardOutPath</key><string>${xml(path.join(dataDir, "launchd.log"))}</string>
 <key>StandardErrorPath</key><string>${xml(path.join(dataDir, "launchd-error.log"))}</string>
 </dict></plist>\n`;
