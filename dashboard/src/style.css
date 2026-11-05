@@ -179,7 +179,7 @@ h1 span {
 }
 .accounts {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   background: var(--sage);
   border-radius: 12px;
   overflow: hidden;
@@ -192,6 +192,7 @@ h1 span {
 }
 .account-title {
   display: flex;
+  flex-wrap: wrap;
   gap: 14px;
   align-items: center;
   justify-content: space-between;
@@ -270,6 +271,69 @@ h1 span {
 }
 .workspace-heading p span {
   padding: 0 8px;
+}
+.store-selector {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 24px 8px 12px;
+  margin-inline: -8px;
+  scrollbar-width: thin;
+}
+.store-selector + .workspace-heading {
+  margin-top: 12px;
+}
+.store-button {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 84px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.store-circle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: #fff;
+  font-size: 1.1rem;
+}
+.store-circle img {
+  display: block;
+  max-width: 60%;
+  max-height: 48%;
+}
+.store-button:hover .store-circle {
+  border-color: var(--muted);
+}
+.store-button[aria-pressed="true"] {
+  color: var(--ink);
+}
+.store-button[aria-pressed="true"] .store-circle {
+  border: 3px solid var(--green);
+  background: var(--sage);
+}
+.store-new {
+  position: absolute;
+  top: 5px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #f7f9f6;
+  border-radius: 50%;
+  background: #893b23;
 }
 .filters {
   display: flex;
@@ -445,7 +509,7 @@ dd {
 }
 .compare-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 160px 160px;
+  grid-template-columns: minmax(0, 1fr) repeat(3, clamp(96px, 12vw, 160px));
   gap: 24px;
   padding: 22px 0;
   border-bottom: 1px solid var(--line);
@@ -578,6 +642,16 @@ footer > div {
   .workspace-heading > p {
     padding-bottom: 14px;
   }
+  .store-selector {
+    gap: 12px;
+  }
+  .store-button {
+    min-width: 80px;
+  }
+  .store-circle {
+    width: 64px;
+    height: 64px;
+  }
   .filters {
     flex-wrap: wrap;
     gap: 14px;
@@ -612,7 +686,8 @@ footer > div {
     max-width: 130px;
   }
   .compare-row {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow-wrap: anywhere;
     gap: 14px;
   }
   .compare-row > div:first-child {

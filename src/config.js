@@ -12,8 +12,9 @@ try {
 process.umask(0o077);
 export const dataDir = path.resolve(root, process.env.DATA_DIR || "data");
 export const accounts = [
-  { id: "account-1", name: process.env.ACCOUNT_1_NAME || "Conta 1" },
-  { id: "account-2", name: process.env.ACCOUNT_2_NAME || "Conta 2" },
+  { id: "account-1", name: process.env.ACCOUNT_1_NAME || "Conta 1", source: "android" },
+  { id: "account-2", name: process.env.ACCOUNT_2_NAME || "Conta 2", source: "android" },
+  { id: "account-3", name: process.env.ACCOUNT_3_NAME || "Conta 3", source: "android" },
 ];
 export const timezone = "Europe/Lisbon";
 export const portalUrl = "https://cartaocontinente.pt/IniciarSessao.aspx";
@@ -23,7 +24,7 @@ if (!Number.isInteger(port) || port < 1024 || port > 65535)
 export function selectAccounts(id = "all") {
   if (id === "all") return accounts;
   const account = accounts.find((a) => a.id === id);
-  if (!account) throw new Error("Use account-1, account-2 or all");
+  if (!account) throw new Error("Use account-1, account-2, account-3 or all");
   return [account];
 }
 export function prepareData() {

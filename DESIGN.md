@@ -1,6 +1,6 @@
 ---
 name: CC Cupões
-description: A calm Portuguese shopping planner for comparing local coupon records across two accounts.
+description: A calm Portuguese shopping planner for comparing local coupon records across three accounts.
 colors:
   green: "#173e36"
   green-hover: "#28594d"
@@ -93,6 +93,20 @@ components:
     padding: "12px 0"
   navigation-tab-selected:
     textColor: "{colors.ink}"
+  store-button:
+    backgroundColor: "transparent"
+    textColor: "{colors.muted}"
+    padding: "0"
+  store-circle:
+    backgroundColor: "{colors.surface}"
+    rounded: "50%"
+    width: "76px"
+    height: "76px"
+  store-circle-selected:
+    backgroundColor: "{colors.sage}"
+  store-circle-mobile:
+    width: "64px"
+    height: "64px"
   badge-new:
     backgroundColor: "{colors.new-background}"
     textColor: "{colors.positive}"
@@ -128,7 +142,7 @@ components:
 
 CC Cupões is a Portuguese operational dashboard for checking coupon records before shopping. Its forest-green navigation, pale sage account strip, and white offer rows make account ownership and usable dates easy to scan. Manrope gives the interface a consistent, restrained voice.
 
-The implemented system uses alignment, horizontal rules, and clear text states. Discount values lead each offer; account identity, conditions, and validity stay close. The two-account comparison preserves the same offer identity across columns.
+The implemented system uses alignment, horizontal rules, and clear text states. Discount values lead each offer; account identity, conditions, and validity stay close. The account comparison preserves the same offer identity across columns.
 
 This document records `dashboard/src/App.jsx` and `dashboard/src/style.css`, with the direction contract in `index.html` (seed `25aafe48`) and product constraints in `PRODUCT.md`. It describes implemented presentation, not successful external account authentication or Telegram delivery.
 
@@ -197,18 +211,19 @@ Discount values, comparison values, and validity blocks use tabular numerals. Of
 
 The working container has a maximum width of 1260px, centered with desktop padding of 48px 36px 24px. A full-width, 76px navigation bar sits above it. The page heading aligns its title and manual-check control horizontally.
 
-Account summaries share one two-column strip. Navigation and counts occupy a ruled row below it. Labeled filters precede the current view. Spacing is mostly built from the documented scale; source-specific values remain local to their components.
+Account summaries share one three-column strip. A horizontally scrollable store selector sits between the account strip and the ruled view-navigation and counts row. Store buttons have a 24px gap; the selector uses 24px top padding, 12px bottom padding, and 8px side padding with matching negative inline margins. The view row follows with a 12px top margin. Labeled filters precede the current view. Spacing is mostly built from the documented scale; source-specific values remain local to their components.
 
-Offer rows use three columns: a 120px discount column, a flexible description column, and a 170px validity column, with 24px gaps. Comparison rows use one flexible offer column and two 160px account columns. History rows align a 160px timestamp column with the event content.
+Offer rows use three columns: a 120px discount column, a flexible description column, and a 170px validity column, with 24px gaps. Comparison rows use one flexible offer column and three account columns from 96px to 160px wide. History rows align a 160px timestamp column with the event content.
 
 At widths of 760px or less:
 
 - The top bar becomes 64px tall, and main padding becomes 32px 20px 24px.
 - The heading, check control, and account strip stack vertically.
+- Store circles use the mobile size, with 12px gaps and an 80px minimum button width; the row scrolls horizontally when needed.
 - Filters wrap, with labels using a 135px flex basis.
 - Offer rows use a 78px discount column and a flexible content column, separated by 12px.
 - Validity moves below the offer content, keeping its status label visible.
-- Comparison offers span both columns; each account value gains its own visible account label.
+- Comparison offers span all three columns; each account value gains its own visible account label.
 - History timestamps move above their event content, and footer metadata stacks.
 
 **The Offer Identity Rule.** Keep each offer's title and validity together when its account values move between desktop and mobile layouts.
@@ -241,6 +256,16 @@ Native selects and the date input have white backgrounds, green text, a 1px fiel
 
 The three views are **Cupões**, **Comparar contas**, and **Histórico**. Navigation uses plain text buttons with a transparent background. The selected view has bold ink text and a 3px bottom rule; `aria-current="page"` carries the state. On mobile, the navigation spans the available width above the counts.
 
+### Store Selector
+
+Store buttons pair an official logo inside a circle with a bold, muted store name underneath. Continente, Galp, and Wells use local logo assets. Unknown brands use up to two initials. Only brands represented in coupon records appear; the selector is absent when no brands exist. Continente is selected initially when present, otherwise the first available brand is used. Selection remains when that brand is still available.
+
+The circle uses the `store-circle` size, a white surface, and a 2px soft-rule border. Each button has an 84px minimum width and a 10px gap between its circle and label. Logos fit within 60% of the circle width and 48% of its height. The selected circle has a 3px forest-green border and sage background; its label uses green ink. Hover changes the unselected border to muted green. Buttons retain the shared focus outline, and `aria-pressed` exposes selection.
+
+A rust dot (12px) sits at the upper-right of the circle with a 2px page-background border. It marks new, present coupons that are available or upcoming in the relevant account scope. The accessible button name adds **novos cupões** when the dot appears. Store labels remain visible below every logo.
+
+The selected store scopes coupons, comparison, history, and available/upcoming counts. Coupon and history views also respect the account filter. Comparison includes all accounts, including its counts and new-coupon dots. The selector uses the compact `store-circle-mobile` size at the existing mobile breakpoint.
+
 ### Chips
 
 **Novo** and **Expira em 48h** are compact informational badges, not controls. They use their dedicated positive and amber colors, bold 0.68rem type, and the `badge` shape. Keep account and brand text alongside them.
@@ -253,11 +278,11 @@ Two summaries share a sage container with one divider. Each shows the account na
 
 The discount leads, followed by brand, account, badges, offer title, and the conditions disclosure. A separate validity block includes the written status, end date, and start date. Approaching expiry changes the end-date emphasis to amber.
 
-Unknown discounts render **Ver imagem** with **Valor não identificado**. The disclosure contains conditions, code, known purchase information, first detection, and the original offer image. This image is evidence content, not decoration. Details use a side-by-side layout on desktop and stack on mobile.
+Unknown discounts render **Ver imagem** with **Valor não identificado**. The disclosure contains conditions, code, known purchase information, first detection, and the original offer image when available. Android offers use the app’s accessible discount text and omit the image. This image is evidence content, not decoration. Details use a side-by-side layout on desktop and stack on mobile.
 
 ### Account Comparison
 
-Matching offers share one identity and date range, then display each account's values. The desktop heading names both account columns. Mobile labels repeat the account name above each value. **Sem esta oferta** and **Por verificar** distinguish known absence from missing verification. The account filter controls the next manual check; comparison continues to show both accounts.
+Matching offers share one identity and date range, then display each account's values. The desktop heading names each account column. Mobile labels repeat the account name above each value. **Sem esta oferta** and **Por verificar** distinguish known absence from missing verification. The account filter controls the next manual check; comparison continues to show all accounts.
 
 ### Filtered History
 

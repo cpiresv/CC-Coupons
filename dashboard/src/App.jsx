@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
 
+const storeLogos = {
+  Continente: "/stores/continente.png",
+  Galp: "/stores/galp.png",
+  Wells: "/stores/wells.svg",
+};
+
 const statuses = {
   available: "Disponíveis",
   upcoming: "Em breve",
@@ -55,6 +61,39 @@ function Icon({ name }) {
     </svg>
   );
 }
+function StoreSelector({ stores, coupons, selected, account, onSelect }) {
+  if (!stores.length) return null;
+  return (
+    <div className="store-selector" role="group" aria-label="Filtrar por loja">
+      {stores.map((store) => {
+        const hasNew = coupons.some(
+          (c) => c.brand === store && c.isNew && c.present &&
+            ["available", "upcoming"].includes(c.status) &&
+            (account === "all" || c.accountId === account),
+        );
+        return (
+          <button
+            key={store}
+            className="store-button"
+            aria-pressed={selected === store}
+            aria-label={hasNew ? `${store}: novos cupões` : store}
+            onClick={() => onSelect(store)}
+          >
+            <span className="store-circle" aria-hidden="true">
+              {Object.hasOwn(storeLogos, store) ? (
+                <img src={storeLogos[store]} alt="" />
+              ) : (
+                <span>{store.split(/\s+/).map((word) => word[0]).slice(0, 2).join("")}</span>
+              )}
+              {hasNew && <span className="store-new" />}
+            </span>
+            <span>{store}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 async function readState(signal) {
   const r = await fetch("/api/state", { signal });
   if (!r.ok)
@@ -64,7 +103,7 @@ async function readState(signal) {
 function CouponDetails({ coupon }) {
   return (
     <details>
-      <summary>Condições e imagem original</summary>
+      <summary>{coupon.imageUrl ? "Condições e imagem original" : "Condições"}</summary>
       <div className="details-body">
         <div>
           <p>{coupon.description}</p>
@@ -74,17 +113,17 @@ function CouponDetails({ coupon }) {
             <dt>Compra mínima</dt>
             <dd>{coupon.minimumPurchase || "Não indicada separadamente"}</dd>
             <dt>Ativação / utilização</dt>
-            <dd>Não indicado pelo portal</dd>
+            <dd>Não indicado na origem</dd>
             <dt>Primeira deteção</dt>
             <dd>{instant(coupon.firstSeen)}</dd>
           </dl>
         </div>
-        <img
+        {coupon.imageUrl && <img
           src={coupon.imageUrl}
           alt={`Imagem do desconto ${coupon.discount || "disponível no portal"}`}
           loading="lazy"
           referrerPolicy="no-referrer"
-        />
+        />}
       </div>
     </details>
   );
@@ -139,7 +178,9 @@ function Comparison({ coupons, accounts }) {
         ))}
       {!groups.size && (
         <div className="empty">
-          As ofertas aparecerão aqui após a primeira verificação.
+          {coupons.length
+            ? "Não existem ofertas atuais desta loja para comparar."
+            : "As ofertas aparecerão aqui após a primeira verificação."}
         </div>
       )}
       <p className="fine-print">
@@ -155,6 +196,7 @@ export default function App() {
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
   const [tab, setTab] = useState("coupons"),
+    [store, setStore] = useState("Continente"),
     [account, setAccount] = useState("all"),
     [status, setStatus] = useState("current"),
     [expiry, setExpiry] = useState("");
@@ -208,10 +250,19 @@ export default function App() {
   }
   const accountName = (id) =>
     data?.accounts.find((a) => a.id === id)?.name || id;
-  const filtered = (data?.coupons || [])
+  const coupons = data?.coupons || [];
+  const stores = [...new Set([
+    ...Object.keys(storeLogos),
+    ...coupons.map((c) => c.brand),
+  ])].filter((brand) => coupons.some((c) => c.brand === brand));
+  const selectedStore = stores.includes(store) ? store : stores[0];
+  const storeCoupons = coupons.filter((c) => c.brand === selectedStore);
+  const accountCoupons = storeCoupons.filter(
+    (c) => account === "all" || c.accountId === account,
+  );
+  const filtered = accountCoupons
     .filter(
       (c) =>
-        (account === "all" || c.accountId === account) &&
         (status === "all" ||
           (status === "current" &&
             ["available", "upcoming"].includes(c.status)) ||
@@ -225,12 +276,14 @@ export default function App() {
         a.endDate.localeCompare(b.endDate) || a.title.localeCompare(b.title),
     );
   const historyEvents = (data?.events || []).filter(
-    (e) => account === "all" || e.account_id === account,
+    (e) => e.payload.brand === selectedStore &&
+      (account === "all" || e.account_id === account),
   );
-  const available = (data?.coupons || []).filter(
+  const countedCoupons = tab === "compare" ? storeCoupons : accountCoupons;
+  const available = countedCoupons.filter(
     (c) => c.status === "available",
   ).length;
-  const upcoming = (data?.coupons || []).filter(
+  const upcoming = countedCoupons.filter(
     (c) => c.status === "upcoming",
   ).length;
   const running = busy || data?.running;
@@ -253,7 +306,6 @@ export default function App() {
               <br />
               <span>em dia.</span>
             </h1>
-            <p>As duas contas. Todas as oportunidades do portal.</p>
           </div>
           <div className="check-control">
             <button
@@ -266,7 +318,7 @@ export default function App() {
             </button>
             <small>
               {account === "all"
-                ? "Verificar as duas contas"
+                ? "Verificar todas as contas"
                 : accountName(account)}{" "}
               · Europe/Lisbon
             </small>
@@ -336,7 +388,9 @@ export default function App() {
                       <p>No Terminal, dentro desta pasta:</p>
                       <code>npm run login -- {a.id}</code>
                       <p>
-                        {a.error === "MANUAL_VERIFICATION"
+                        {a.source === "android"
+                          ? "Inicie sessão na app Cartão Continente do emulador. Depois, volte a verificar esta conta."
+                          : a.error === "MANUAL_VERIFICATION"
                           ? "Conclua qualquer verificação apresentada pelo site. Se a página continuar em branco, contacte o apoio Cartão Continente. Repetir o SMS pode não resolver este bloqueio."
                           : "Conclua o SMS apenas no site. A janela fecha ao terminar."}
                       </p>
@@ -345,6 +399,13 @@ export default function App() {
                 </div>
               ))}
             </section>
+            <StoreSelector
+              stores={stores}
+              coupons={coupons}
+              selected={selectedStore}
+              account={tab === "compare" ? "all" : account}
+              onSelect={setStore}
+            />
             <div className="workspace-heading">
               <nav aria-label="Vistas dos cupões">
                 {[
@@ -363,7 +424,8 @@ export default function App() {
                 ))}
               </nav>
               <p>
-                {available} disponíveis <span>·</span> {upcoming} em breve
+                {available} {available === 1 ? "disponível" : "disponíveis"}
+                <span>·</span> {upcoming} em breve
               </p>
             </div>
             <div className="filters">
@@ -373,7 +435,7 @@ export default function App() {
                   value={account}
                   onChange={(e) => setAccount(e.target.value)}
                 >
-                  <option value="all">As duas contas</option>
+                  <option value="all">Todas as contas</option>
                   {data.accounts.map((a) => (
                     <option value={a.id} key={a.id}>
                       {a.name}
@@ -420,8 +482,7 @@ export default function App() {
               )}
               {tab === "compare" && (
                 <p>
-                  As duas contas aparecem lado a lado. O filtro Conta define a
-                  próxima verificação.
+                  O filtro Conta define a próxima verificação. A comparação inclui todas as contas.
                 </p>
               )}
             </div>
@@ -429,6 +490,7 @@ export default function App() {
               <section aria-label="Cupões">
                 <div className="list-caption">
                   <h2>
+                    {selectedStore && `${selectedStore} · `}
                     {filtered.length}{" "}
                     {filtered.length === 1 ? "cupão" : "cupões"}
                   </h2>
@@ -479,7 +541,7 @@ export default function App() {
                     </h3>
                     <p>
                       {data.coupons.length
-                        ? "Altere a conta, o estado ou a data."
+                        ? "Altere a loja, a conta, o estado ou a data."
                         : "Inicie sessão e execute uma verificação para começar."}
                     </p>
                   </div>
@@ -487,11 +549,11 @@ export default function App() {
               </section>
             )}
             {tab === "compare" && (
-              <Comparison coupons={data.coupons} accounts={data.accounts} />
+              <Comparison coupons={storeCoupons} accounts={data.accounts} />
             )}
             {tab === "history" && (
               <section aria-label="Histórico de alterações" className="history">
-                <h2>Últimas alterações</h2>
+                <h2>Últimas alterações{selectedStore && ` · ${selectedStore}`}</h2>
                 <p className="fine-print">
                   As 200 alterações mais recentes. O histórico completo
                   permanece na base de dados local.

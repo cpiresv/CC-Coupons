@@ -1,0 +1,98 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font-size",
+        "value": "15px",
+        "files": [
+          "dashboard/src/style.css"
+        ],
+        "createdAt": "2026-11-04T20:49:24.572Z",
+        "reason": "Project design system: DESIGN.md documents the existing 15px root font size."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "0.8rem",
+        "files": [
+          "dashboard/src/style.css"
+        ],
+        "createdAt": "2026-11-04T20:49:24.634Z",
+        "reason": "Project design system: DESIGN.md documents supporting copy at 0.8rem; the store selector reuses this size."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "1.2rem",
+        "files": [
+          "dashboard/src/style.css"
+        ],
+        "createdAt": "2026-11-04T20:49:24.694Z",
+        "reason": "Scoped extension: preserve the existing top-bar logo size in dashboard/src/style.css."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "0.82rem",
+        "files": [
+          "dashboard/src/style.css"
+        ],
+        "createdAt": "2026-11-04T20:49:24.756Z",
+        "reason": "Scoped extension: preserve the existing account-filter helper size in dashboard/src/style.css."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "0.68rem",
+        "files": [
+          "dashboard/src/style.css"
+        ],
+        "createdAt": "2026-11-04T20:49:24.816Z",
+        "reason": "Scoped extension: preserve the existing compact new and expiry badges in dashboard/src/style.css."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "0.7rem",
+        "files": [
+          "dashboard/src/style.css"
+        ],
+        "createdAt": "2026-11-04T20:49:24.876Z",
+        "reason": "Scoped extension: preserve the existing status and mobile footer labels in dashboard/src/style.css."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "1.6rem",
+        "files": [
+          "dashboard/src/style.css"
+        ],
+        "createdAt": "2026-11-04T20:49:24.939Z",
+        "reason": "Project design system: DESIGN.md documents 1.6rem comparison values."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "0.85rem",
+        "files": [
+          "dashboard/src/style.css"
+        ],
+        "createdAt": "2026-11-04T20:49:25.000Z",
+        "reason": "Scoped extension: preserve the existing notice message size in dashboard/src/style.css."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "1.65rem",
+        "files": [
+          "dashboard/src/style.css"
+        ],
+        "createdAt": "2026-11-04T20:49:25.062Z",
+        "reason": "Project design system: DESIGN.md documents 1.65rem mobile discounts."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "0.92rem",
+        "files": [
+          "dashboard/src/style.css"
+        ],
+        "createdAt": "2026-11-04T20:49:25.123Z",
+        "reason": "Project design system: DESIGN.md documents 0.92rem mobile offer titles."
+      }
+    ]
+  }
+}

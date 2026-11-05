@@ -2,8 +2,7 @@ import { appendFile } from "node:fs/promises";
 import path from "node:path";
 import { selectAccounts, dataDir, portalUrl } from "./config.js";
 import {
-  openProfile,
-  closeProfile,
+  openCheckProfile,
   saveSession,
   debugScreenshot,
 } from "./auth.js";
@@ -19,14 +18,16 @@ import {
 } from "./storage.js";
 import { acquireLock } from "./lock.js";
 import { flushNotifications } from "./notifications.js";
+import { checkAndroid } from "./android.js";
 
-export async function log(event, account, code, count) {
+export async function log(event, account, code, count, source) {
   const line = JSON.stringify({
     at: new Date().toISOString(),
     event,
     account,
     code,
     count,
+    source,
   });
   console.log(line);
   await appendFile(path.join(dataDir, "checks.log"), line + "\n", {
@@ -55,23 +56,26 @@ export async function runChecks(db, id = "all", { scheduledDay } = {}) {
     for (const account of selected) {
       let succeeded = false;
       for (let attempt = 0; attempt < 3; attempt++) {
-        let context;
+        let profile;
         let page;
         try {
-          context = await openProfile(account.id, {
-            headed: process.env.HEADLESS === "false",
-          });
-          page = context.pages()[0] || (await context.newPage());
-          const coupons = await withVerificationCheck(page, async () => {
-            const response = await page.goto(portalUrl, {
-              waitUntil: "domcontentloaded",
-              timeout: 45000,
+          let coupons;
+          if (account.source === "android") {
+            coupons = await checkAndroid(account.id);
+          } else {
+            profile = await openCheckProfile(account.id);
+            page = profile.page;
+            coupons = await withVerificationCheck(page, async () => {
+              const response = await page.goto(portalUrl, {
+                waitUntil: "domcontentloaded",
+                timeout: 45000,
+              });
+              if (response && !response.ok())
+                throw new CheckError("NETWORK_ERROR");
+              return extractCoupons(page);
             });
-            if (response && !response.ok())
-              throw new CheckError("NETWORK_ERROR");
-            return extractCoupons(page);
-          });
-          await saveSession(context, account.id);
+            await saveSession(profile.context, account.id);
+          }
           const changes = saveSnapshot(db, account.id, coupons);
           results.push({
             accountId: account.id,
@@ -79,7 +83,7 @@ export async function runChecks(db, id = "all", { scheduledDay } = {}) {
             count: coupons.length,
             changes: changes.length,
           });
-          await log("check_success", account.id, undefined, coupons.length);
+          await log("check_success", account.id, undefined, coupons.length, profile?.source || account.source);
           succeeded = true;
           break;
         } catch (error) {
@@ -94,15 +98,15 @@ export async function runChecks(db, id = "all", { scheduledDay } = {}) {
             if (page) await debugScreenshot(page, account.id);
             recordFailure(db, account.id, code);
             results.push({ accountId: account.id, ok: false, code });
-            await log("check_failed", account.id, code);
+            await log("check_failed", account.id, code, undefined, profile?.source || account.source);
             break;
           }
         } finally {
-          if (context) {
+          if (profile) {
             // A failed extraction can still renew or revoke the browser session.
             if (!succeeded)
-              await saveSession(context, account.id).catch(() => {});
-            await closeProfile(context).catch(() => {});
+              await saveSession(profile.context, account.id).catch(() => {});
+            await profile.close().catch(() => {});
           }
         }
         await new Promise((resolve) =>

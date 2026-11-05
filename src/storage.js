@@ -206,7 +206,10 @@ export function dashboardData(db, now = new Date()) {
       };
     });
   return {
-    accounts: db.prepare("SELECT * FROM accounts").all(),
+    accounts: db.prepare("SELECT * FROM accounts").all().map((account) => ({
+      ...account,
+      source: accounts.find((configured) => configured.id === account.id)?.source || "web",
+    })),
     coupons,
     events: db
       .prepare("SELECT * FROM events ORDER BY id DESC LIMIT 200")

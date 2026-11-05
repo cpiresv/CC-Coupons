@@ -1,12 +1,13 @@
 # CC Coupons
 
-A local monitor for two Cartão Continente accounts. It uses independent Playwright Chromium profiles, SQLite history, Telegram notifications, an Express API, and a Portuguese React dashboard.
+A local monitor for three Cartão Continente accounts. Each account uses the official Android app in its own dedicated Google emulator. Previous Chrome profiles remain preserved locally. All three share SQLite history, Telegram notifications, an Express API, and a Portuguese React dashboard.
 
 ## Requirements
 
 - macOS with Google Chrome installed.
+- Android SDK with emulator, platform-tools, the `android` command-line tool, Java, and the configured Google Play devices described below.
 - Node.js 22.13 or later. Node's built-in `node:sqlite` provides SQLite without a native package build.
-- Access to both accounts and their SMS verification codes.
+- Access to the accounts and their SMS verification codes.
 
 ## Start
 
@@ -28,37 +29,56 @@ Do not replace an existing `.env`. Account names, port, browser channel, headles
 ```sh
 npm run login -- account-1
 npm run login -- account-2
+npm run login -- account-3
 ```
 
-Each command opens a separate, visible profile. Complete the login and SMS on the website. The command opens the coupon section, saves the session, closes its browser, and verifies the account headlessly. Allow up to 15 minutes for manual login. Closing the window cancels the flow.
+Each command opens that account's visible Android device. Complete the Continente login and any SMS inside the app. The command preserves the session, closes its window, and checks the account in the background. Allow up to 15 minutes for manual login. Closing the window cancels the flow.
 
-After login, the browser opens the observed account-page form URL before clicking Cupões. This lets the website display and complete its browser verification as a full page. A verification response inside an AJAX request can otherwise leave a permanent loading spinner. Complete any visible verification yourself. If it still fails, open Cupões in regular Chrome and use the scoped import below once the page works there.
+Enter passwords and SMS codes only inside the official app. The monitor does not request them in chat, log them, or store them in configuration. Reauthentication uses the same `login` command. Previous browser profiles are retained under `data/profiles/`, but the configured accounts now use Android. Chrome import is not used for these accounts.
 
-If the portal is already authenticated in your local CDP-enabled Chrome:
+A SQLite process lock covers login, checks, scheduling, and notification dispatch. It prevents concurrent profile use across CLI and dashboard processes. Dead-process locks recover on the next operation.
+
+## Android integration
+
+All account checks read the official app's accessibility tree. The same manual check, dashboard button, daily schedule, history, comparison, and Telegram outbox process its coupons. The collector opens each store's list entries individually, including upcoming coupons, and waits for complete codes, discounts, conditions, and dates. It scrolls links clear of the app's fixed controls before opening them. The detail count must match the list count, and coupon identities must be unique before saving a snapshot. Incomplete or empty results preserve the previous data.
+
+Each device uses Android 16 Google Play ARM64, 3 GB RAM, and two CPU cores. Device names, ports, and storage are fixed per account:
+
+| Account | Device | Port | Storage |
+| --- | --- | --- | --- |
+| 1 | `cc_coupons_account_1` | 5558 | `data/android/account-1.avd/` |
+| 2 | `cc_coupons_account_2` | 5560 | `data/android/account-2.avd/` |
+| 3 | `cc_coupons_account_3` | 5556 | `data/android/account-3.avd/` |
+
+Each AVD definition must point to its own directory under the configured data directory. Set each device’s system language to **Português (Portugal)**. After the first Continente login, also open the profile icon → **Definições** → **Idioma** and select **Português**. The app has its own language preference; changing Android alone can leave English dates and discount labels. The coupon reader validates Portuguese labels. Git ignores this signed-in device storage. Install [Cartão Continente from Google Play](https://play.google.com/store/apps/details?id=pt.continente.ContinenteTelemovel) and sign into the matching Continente account inside each emulator. Accounts 1 and 2 were created from fresh device storage; their official app packages came from the Google Play installation, without copying account data. Do not copy another account's device storage or use **Wipe Data**.
+
+The SDK defaults to `~/Library/Android/sdk`. Set `ANDROID_HOME` or `ANDROID_SDK_ROOT` for another location. The collector requires `platform-tools/adb`, `emulator/emulator`, and `cmdline-tools/latest/bin/android`. It uses `JAVA_HOME` when set, otherwise the Homebrew OpenJDK installation. Configure these variables in `.env` when the daily job also needs them.
 
 ```sh
-npm run import-chrome -- account-1
+npm run login -- account-3   # Opens the configured device for manual login
+npm run check -- account-3   # Refreshes the dashboard and dispatches notifications
 ```
 
-The import connects to `127.0.0.1:9333`, reads only Cartão Continente cookies and local storage, and verifies them in the account's separate profile. It does not copy the regular Chrome profile or other websites' sessions. Import one account at a time. Never import the same open account into both account slots.
+Checks start the selected account’s device without a window and close it afterward. Checks run sequentially, so scheduled checks do not require three running emulators. If the device is already open, checks reuse it and leave it open. Do not interact with it during a check. The collector checks the device identity before accessing the app. Close an existing emulator before running the login command, or sign in there and run a check.
 
-Profiles are `data/profiles/account-1` and `data/profiles/account-2`. Chrome's native session restoration preserves session cookies across headless browser restarts. Passwords and SMS codes are never requested by the program, logged, or stored in configuration. Complete security challenges manually. Reauthentication uses the same `login` command.
+Cold starts use `-no-snapshot`, preserving installed apps and authentication data. The collector flushes Android storage before shutting down a device it started. Quick Boot previously restored a blank sign-in screen. Local commands disable wireless discovery with `ADB_MDNS=0` because the installed ADB discovery service crashed on this Mac. These settings do not change regular Chrome. Every account keeps separate Android storage.
 
-Chrome manages persistent and session cookies together, including token rotation and revocation. The monitor does not replay old JSON cookies over the profile. Private JSON snapshots remain available for diagnosis and are updated after failed extractions too.
+The app does not expose image URLs in its accessibility tree. The dashboard shows the discount text and coupon conditions without an invented image. Activation and usage remain unknown; the collector never selects, activates, archives, or redeems coupons.
 
-Each run uses one fresh tab. Portal tabs are closed before the browser exits so old login pages and background requests are not restored alongside the next check. Interactive login selects its tab explicitly.
+On 5 November 2026, Account 3 retained its login after an app restart and a cold emulator restart without manual login or SMS. The app showed 18 current coupons across Continente (3), Galp (5), Wells (9), and Pizza Hut (1), plus 6 upcoming Continente coupons. An initial empty view resolved after restarting the app. A dashboard-triggered check then opened the emulator, saved all 24 unique coupons, and closed the emulator automatically. Telegram confirmed all 24 new-coupon notifications. Mobile and desktop dashboard views were verified. Idle retention remains untested; restart success does not guarantee permanent authentication.
 
-A SQLite process lock covers login, checks, scheduling, and notification dispatch. It prevents concurrent profile use across CLI and dashboard processes. Dead-process locks recover on the next operation. Do not open these profile directories with another program while checks run.
+Accounts 1 and 2 completed unattended Android dashboard checks on the same date, without another login or SMS. Account 1 saved 20 coupons at 13:19:33 UTC: 11 current and 9 upcoming. Account 2 saved 18 coupons at 13:31:42 UTC: 10 current and 8 upcoming. Both logins survived emulator restarts. The complete Account 1 check reused its device and restarted the app; Account 2's complete check cold-started its device. Both devices were then closed with their sessions saved. Telegram confirmed all five new notifications from these checks. Desktop and mobile verification confirmed all three accounts were ready, with Account 3's data unchanged. No idle test was run.
 
 ## Check now
 
 ```sh
-npm run check                  # both accounts
+npm run check                  # all accounts
 npm run check -- account-1
 npm run check -- account-2
+npm run check -- account-3
 ```
 
-The dashboard's account filter also selects the account for its check button. A failed account does not prevent the other account from being checked. Network failures receive at most three attempts, separated by 5 and 10 seconds. Authentication and layout failures stop without repeated scraping.
+The dashboard's account filter also selects the account for its check button. A failed account does not prevent the remaining accounts from being checked. Network failures receive at most three attempts, separated by 5 and 10 seconds. Authentication and layout failures stop without repeated scraping.
 
 If the portal returns its homepage, the checker follows the observed account menu to Cupões. A resulting login form is reported as an expired session, instead of a layout change.
 
@@ -97,7 +117,7 @@ npm run schedule -- uninstall
 
 Set `DAILY_CHECK_TIME=09:00` in `.env` to choose a daily time in **Europe/Lisbon**.
 
-The LaunchAgent is `local.cc-coupons.daily`. It starts a lightweight Node gate every five minutes. The gate launches a browser only once per Lisbon day, at or after the configured time. This avoids relying on the Mac's system timezone for launchd calendar matching. It catches up after waking or logging in; it does not wake a sleeping Mac or run while the user is logged out. Changing the time takes effect on the next tick; a day already attempted is not repeated automatically.
+The LaunchAgent is `local.cc-coupons.daily`. It starts a lightweight Node gate every five minutes. The gate checks the configured Android accounts only once per Lisbon day, at or after the configured time. This avoids relying on the Mac's system timezone for launchd calendar matching. It catches up after waking or logging in; it does not wake a sleeping Mac or run while the user is logged out. Changing the time takes effect on the next tick; a day already attempted is not repeated automatically.
 
 Checks that fail consume that day's scheduled attempt. The monitor retries transient failures inside the check, preserves previous data, and sends a repeated-failure alert after three failed checks. Manual checks remain available.
 
@@ -120,7 +140,7 @@ The site uses OutSystems page/AJAX updates. No undocumented JSON endpoint is ass
 - Start/end dates use Lisbon time. A coupon is valid through the end of its printed expiration day. Future coupons are separate from currently usable coupons.
 - The site's `coupon-holder-inactive` class also occurs on future offers. It is **not** treated as an activation or usage flag.
 - Activation-required, activated, and used remain `null` where the portal provides no confirmed information. The monitor never activates or redeems a coupon.
-- The portal explicitly says app-exclusive coupons may require the mobile app. The monitor cannot claim coverage of those offers.
+- The portal explicitly says app-exclusive coupons may require the mobile app. The web collectors cannot claim coverage of those offers; the Android collectors read the offers visible in each account’s app.
 - One account initially received HTTP 247 verification HTML inside AJAX requests (`winsocks is not defined`), leaving a spinner or blank page. A manual login in regular Chrome followed by full navigation to `/AMinhaConta.aspx` allowed the website's verification to complete. The verified session was imported into its independent profile, and a headless check retrieved the complete snapshot. The monitor still stops with `MANUAL_VERIFICATION` if this response returns; it never treats partial data as a complete result. No challenge code is patched or manually invoked by the monitor.
 - No authenticated zero-coupon state was available during inspection. An empty brand result therefore fails closed as `UNVERIFIED_EMPTY_STATE`, preserving previous data. Verify actual empty-state markup before supporting confirmed empty snapshots.
 
@@ -130,6 +150,8 @@ SQLite records are separated by account and coupon key (brand, printed code, cam
 
 The dashboard shows current offers, future offers, 48-hour expiry warnings, and offers first detected in the previous 48 hours. Filters select account, status, and latest expiration date. The comparison groups offers with identical conditions and dates; it does not assume different product categories are equivalent. An unverified account displays “Por verificar”.
 
+Circular store selectors group coupons by brand, following the mobile app's navigation pattern. Only stores with saved records appear. The selected store applies to coupons, account comparison, history, and the availability counts. A dot marks stores with new current or upcoming coupons for the selected account; comparison always includes all accounts. Account, status, and date filters remain available. Store logos are saved locally so navigation does not depend on external image requests.
+
 The dashboard shows the latest 200 history events; the complete event history and previous snapshots remain in SQLite. Expired offers remain available through the status filter, even if no further successful website check has run.
 
 ## Local data and troubleshooting
@@ -137,8 +159,9 @@ The dashboard shows the latest 200 history events; the complete event history an
 Everything private lives under `data/`, ignored by Git. `.env`, build output, browser data, debug screenshots, and logs are also ignored. The data directory uses owner-only permissions. If setting `DATA_DIR`, use a location outside the repository. The SQLite database is local and not encrypted by this app; protect the Mac and its backups.
 
 - `data/coupons.sqlite`: accounts, snapshots, events, notification outbox, and scheduler state.
-- `data/checks.log`: timestamps, account IDs, safe status codes, and counts only.
+- `data/checks.log`: timestamps, account IDs, safe status codes, counts, and collection source (`android` for the configured accounts).
 - `data/debug/`: failure screenshots, with headers, account sidebar, form fields, and login frames masked. At most 20 generated failure screenshots are retained. Treat all screenshots as private.
+- `data/android/`: private emulator storage and logs. `account-N-last-error.png` retains each account’s latest Android failure screenshot; it may contain account information. The matching `.json` file records the error code and stack. Temporary accessibility captures are removed after each check.
 - `data/launchd.log` and `data/launchd-error.log`: scheduled process output.
 
 If the portal changes, keep the previous database, inspect the authenticated page, and update the extractor and its tests. A failed check never confirms an empty inventory.
@@ -154,13 +177,14 @@ npm test
 npm run build
 ```
 
-Tests cover date parsing/DST, expiry boundaries, observed markup in a real headless Chrome instance, failed extraction preservation, account separation, history, deduplication, process locks, Telegram delivery outcomes, the schedule gate, and local API request checks. Telegram tests use a fake transport and do not contact recipients.
+Tests cover date parsing/DST, expiry boundaries, observed markup in a real headless Chrome instance, failed extraction preservation, account separation, history, deduplication, process locks, Telegram delivery outcomes, the schedule gate, local API request checks, Android detail parsing and complete-store collection, and mobile store selection across coupon, comparison, and history views. Dashboard tests use synthetic offers. Telegram tests use a fake transport and do not contact recipients.
 
 The live check establishes current portal access, not permanent authentication. Sessions can expire and need another manual SMS login. Actual Telegram delivery requires configured credentials and separate confirmation from Telegram.
 
 ## Modules
 
 - `src/auth.js`: independent profiles, interactive login, scoped Chrome import, screenshots.
+- `src/android.js`: dedicated emulator lifecycle, manual app login, and accessibility-based coupon collection.
 - `src/extraction.js`: observed portal navigation and coupon parsing.
 - `src/storage.js`, `src/dates.js`: SQLite, comparison/history, and Lisbon dates.
 - `src/notifications.js`: Telegram outbox dispatch and deduplication.
@@ -169,3 +193,5 @@ The live check establishes current portal access, not permanent authentication. 
 - `src/server.js`, `dashboard/src/`: local-network Express API and React dashboard.
 
 Manrope font files in `public/fonts/` use the included SIL Open Font License.
+
+Store marks in `public/stores/` identify their respective brands and remain the property of their owners. Sources: [Cartão Continente icon](https://cartaocontinente.pt/PortalCartaoContinente_Resources/img/logo_continente.png), [Galp wordmark](https://www.galp.com/pt/img/logo-galp.png), and the inline Wells wordmark on [Wells](https://wells.pt). They are not covered by the project's code license.

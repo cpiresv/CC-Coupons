@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
-import { writeFile, rename, mkdir, readdir, unlink } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { readFile, writeFile, rename, mkdir, readdir, unlink } from "node:fs/promises";
 import path from "node:path";
 import {
   dataDir,
@@ -8,7 +9,7 @@ import {
   prepareData,
   selectAccounts,
 } from "./config.js";
-import { requireCouponPage, CheckError } from "./extraction.js";
+import { requireCouponPage, waitForAccount, CheckError } from "./extraction.js";
 
 const stateFile = (id) => path.join(dataDir, `${id}-state.json`);
 export async function openProfile(id, { headed = false } = {}) {
@@ -45,6 +46,47 @@ export async function closeProfile(context) {
     await context.close();
   }
 }
+
+export async function openCheckProfile(id) {
+  if (id === "account-3") {
+    // The overnight trial attaches only to the browser socket in this private profile.
+    const file = path.join(dataDir, "profiles", id, "DevToolsActivePort");
+    const endpoint = await readFile(file, "utf8").catch((error) => {
+      if (error.code !== "ENOENT") throw error;
+      return "";
+    });
+    const address = /^(\d{1,5})\r?\n(\/devtools\/browser\/[\da-f-]{36})\s*$/i.exec(endpoint);
+    if (address && Number(address[1]) <= 65535) {
+      const browser = await chromium.connectOverCDP(
+        `ws://127.0.0.1:${address[1]}${address[2]}`, { timeout: 3000 },
+      ).catch(() => null); // Chrome can leave the file behind after exit.
+      if (browser) {
+        try {
+          const context = browser.contexts()[0];
+          const hasPortalTab = context.pages().some((p) => new URL(p.url()).origin === new URL(portalUrl).origin);
+          const client = await browser.newBrowserCDPSession();
+          const url = `about:blank#${randomUUID()}`;
+          const [page] = await Promise.all([
+            context.waitForEvent("page", { predicate: p => p.url() === url, timeout: 10000 }),
+            client.send("Target.createTarget", { url, background: true }),
+          ]);
+          return {
+            context, page, source: hasPortalTab ? "open-tab" : "open-browser",
+            async close() {
+              try { await page.close(); } finally { await browser.close(); }
+            },
+          };
+        } catch (error) {
+          await browser.close();
+          throw error;
+        }
+      }
+    }
+  }
+  const context = await openProfile(id, { headed: process.env.HEADLESS === "false" });
+  return { context, page: context.pages()[0], source: "reopened", close: () => closeProfile(context) };
+}
+
 export async function saveSession(context, id) {
   const tmp = stateFile(id) + ".tmp";
   await writeFile(tmp, JSON.stringify(await context.storageState()), {
@@ -62,9 +104,7 @@ export async function authenticate(id, onReady = () => {}) {
     });
     await page.bringToFront();
     onReady();
-    await page
-      .locator(".MyAccountLeftMenu")
-      .waitFor({ timeout: 15 * 60 * 1000 });
+    await waitForAccount(page, 15 * 60 * 1000);
     const accountPage = new URL(
       await page.locator("form").getAttribute("action"),
       page.url(),
@@ -79,9 +119,7 @@ export async function authenticate(id, onReady = () => {}) {
       waitUntil: "domcontentloaded",
       timeout: 45000,
     });
-    await page
-      .locator(".MyAccountLeftMenu")
-      .waitFor({ timeout: 15 * 60 * 1000 });
+    await waitForAccount(page, 15 * 60 * 1000);
     await requireCouponPage(page);
   } finally {
     await saveSession(context, id).catch(() => {});
@@ -102,8 +140,13 @@ export async function importChrome(id, endpoint = "http://127.0.0.1:9333") {
       .find((p) => new URL(p.url()).origin === "https://cartaocontinente.pt");
     if (!page) throw new CheckError("NO_PORTAL_TAB");
     await requireCouponPage(page);
-    cookies = (await page.context().cookies(portalUrl)).filter((c) =>
-      /^(\.)?cartaocontinente\.pt$/.test(c.domain),
+    cookies = (await page.context().cookies([
+      portalUrl,
+      "https://login.continente.pt/",
+    ])).filter((c) =>
+      ["cartaocontinente.pt", "login.continente.pt"].includes(
+        c.domain.replace(/^\./, ""),
+      ),
     );
     localStorage = await page.evaluate(() =>
       Object.entries(window.localStorage).map(([name, value]) => ({
@@ -147,7 +190,7 @@ export async function debugScreenshot(page, id) {
     })
     .catch(() => {});
   const files = (await readdir(dir))
-    .filter((f) => /^account-[12]-\d+\.png$/.test(f))
-    .sort();
+    .filter((f) => /^account-\d+-\d+\.png$/.test(f))
+    .sort((a, b) => Number(a.split("-").pop().split(".")[0]) - Number(b.split("-").pop().split(".")[0]));
   for (const file of files.slice(0, -20)) await unlink(path.join(dir, file));
 }

@@ -99,17 +99,40 @@ export function normalizeCoupon(row, brand) {
   };
 }
 
+export async function waitForAccount(page, timeout = 15000) {
+  const menu = page.locator(".MyAccountLeftMenu");
+  const deadline = Date.now() + timeout;
+  while (!(await menu.isVisible()) && Date.now() < deadline) {
+    for (const frame of page.frames()) {
+      let url;
+      try {
+        url = new URL(frame.url());
+      } catch {
+        continue;
+      }
+      if (url.origin !== "https://login.continente.pt") continue;
+      const name = url.pathname === "/sso/keep-me-logged-in"
+        ? /^(Sim, manter|Yes, keep me logged in)$/
+        : url.pathname.startsWith("/sso/welcome-back/")
+          ? /^(Continuar|Continue)$/
+          : null;
+      if (!name) continue;
+      const button = frame.getByRole("button", { name });
+      if (await button.isVisible() && await button.isEnabled())
+        await button.click();
+    }
+    await page.waitForTimeout(250);
+  }
+  await menu.waitFor({ timeout: 1000 });
+}
+
 export async function requireCouponPage(page) {
   const heading = page
     .locator(".TituloDadosConta")
     .filter({ hasText: /^Os meus cupões$/ });
   if (!(await heading.isVisible())) {
-    if (await page.locator(".MyAccountLeftMenu").isVisible()) {
-      await page
-        .locator(".MyAccountLeftMenu a")
-        .filter({ hasText: /^Cupões$/ })
-        .click();
-    } else if (
+    if (
+      !(await page.locator(".MyAccountLeftMenu").isVisible()) &&
       (await page.locator(".MyAccount .Menu_TopMenu").isVisible()) &&
       !page
         .frames()
@@ -126,6 +149,13 @@ export async function requireCouponPage(page) {
     }
   }
   try {
+    if (!(await heading.isVisible())) {
+      await waitForAccount(page);
+      await page
+        .locator(".MyAccountLeftMenu a")
+        .filter({ hasText: /^Cupões$/ })
+        .click();
+    }
     await heading.waitFor({ timeout: 15000 });
   } catch {
     if (
