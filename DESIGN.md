@@ -258,7 +258,7 @@ The three views are **Cupões**, **Comparar contas**, and **Histórico**. Naviga
 
 ### Store Selector
 
-Store buttons pair an official logo inside a circle with a bold, muted store name underneath. Continente, Galp, and Wells use local logo assets. Unknown brands use up to two initials. Only brands represented in coupon records appear; the selector is absent when no brands exist. Continente is selected initially when present, otherwise the first available brand is used. Selection remains when that brand is still available.
+Store buttons pair an official logo inside a circle with a bold, muted store name underneath. Continente, Galp, Wells, Pizza Hut, Taco Bell, KFC, and Pans & Company use local logo assets. TacoBell and Pans&Company labels use the same respective assets. Unknown brands use up to two initials. Only brands represented in coupon records appear; the selector is absent when no brands exist. Continente is selected initially when present, otherwise the first available brand is used. Selection remains when that brand is still available.
 
 The circle uses the `store-circle` size, a white surface, and a 2px soft-rule border. Each button has an 84px minimum width and a 10px gap between its circle and label. Logos fit within 60% of the circle width and 48% of its height. The selected circle has a 3px forest-green border and sage background; its label uses green ink. Hover changes the unselected border to muted green. Buttons retain the shared focus outline, and `aria-pressed` exposes selection.
 

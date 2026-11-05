@@ -4,6 +4,12 @@ const storeLogos = {
   Continente: "/stores/continente.png",
   Galp: "/stores/galp.png",
   Wells: "/stores/wells.svg",
+  "Pizza Hut": "/stores/pizza-hut.png",
+  "Taco Bell": "/stores/taco-bell.png",
+  TacoBell: "/stores/taco-bell.png",
+  KFC: "/stores/kfc.png",
+  "Pans & Company": "/stores/pans-company.png",
+  "Pans&Company": "/stores/pans-company.png",
 };
 
 const statuses = {
