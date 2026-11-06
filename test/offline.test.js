@@ -18,7 +18,7 @@ test("Offline snapshots retain their timestamp, expire coupons, and never report
     setItem: (_key, value) => { stored = value; },
   });
   const data = {
-    accounts: [], events: [], notifications: [], running: true,
+    accounts: [{ id: "account-1", balance: { cents: 1583, checkedAt: "2026-11-04T09:00:00Z", error: 0 } }], events: [], notifications: [], running: true,
     coupons: [{
       present: true, used: false, status: "available", isNew: true, expiring: true,
       startDate: "2020-01-01", endDate: "2020-01-02", firstSeen: "2020-01-01T12:00:00Z",
@@ -33,6 +33,7 @@ test("Offline snapshots retain their timestamp, expire coupons, and never report
   assert.equal(offline.offline, true);
   assert.equal(offline.savedAt, live.savedAt);
   assert.equal(offline.running, false);
+  assert.deepEqual(offline.accounts[0].balance, data.accounts[0].balance);
   assert.equal(offline.coupons[0].status, "expired");
   assert.equal(offline.coupons[0].isNew, false);
   assert.equal(offline.coupons[0].expiring, false);

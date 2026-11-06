@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { readState, rememberCard } from "./offline.js";
 import CardControl from "./CardControl.jsx";
 
+const euros = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" });
+
 const storeLogos = {
   Continente: "/stores/continente.png",
   Galp: "/stores/galp.png",
@@ -423,6 +425,17 @@ export default function App() {
                             : "Por ligar"}
                     </span>
                   </div>
+                  <p className="account-balance">
+                    Saldo em cartão{" "}
+                    <strong>{Number.isSafeInteger(a.balance?.cents)
+                      ? euros.format(a.balance.cents / 100) : "Por verificar"}</strong>
+                  </p>
+                  {a.balance?.checkedAt && <p>Saldo verificado: <strong>{instant(a.balance.checkedAt)}</strong></p>}
+                  {!!a.balance?.error && <p className="account-error">
+                    {a.balance.checkedAt
+                      ? "Não foi possível atualizar o saldo. O valor anterior foi mantido."
+                      : "Não foi possível ler o saldo. Tente verificar esta conta novamente."}
+                  </p>}
                   <p>
                     Última verificação:{" "}
                     <strong>{instant(a.last_success)}</strong>

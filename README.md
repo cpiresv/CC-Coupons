@@ -88,6 +88,10 @@ The official app does not expose the timer as accessible text. `src/read-card.sw
 
 ### Coupon collection
 
+Daily and manual checks also read each account's spendable balance from the official app's home screen. The dashboard shows **Saldo em cartão** with the balance's own verification time, including in its saved offline copy. This is the recorded balance, not a live total after purchases.
+
+The balance is read before coupons, using macOS Vision on the observed balance region. Lifetime savings (**Já ganhou**) and coupon discounts are excluded. An unreadable balance preserves the previous amount and timestamp, displays a failed-update message, and lets coupon collection continue. A later coupon failure does not discard a balance already confirmed during that check.
+
 All account checks read the official app's accessibility tree. The same manual check, dashboard button, daily schedule, history, comparison, and Telegram outbox process its coupons. The collector discovers store names from the full accessibility tree, including off-screen tabs. It reveals the store row vertically, then swipes horizontally to reach tabs on either side.
 
 It opens each store's list entries individually, including upcoming coupons, and waits for complete codes, discounts, conditions, and dates. It scrolls links clear of the app's fixed controls before opening them. Navigation attempts are bounded; unreachable tabs fail the check. The detail count must match the list count, and coupon identities must be unique before saving a snapshot. Incomplete or empty results preserve the previous data. It reuses the verified screen layout for visibility checks and reads a fresh layout after scrolling or incomplete positioning.

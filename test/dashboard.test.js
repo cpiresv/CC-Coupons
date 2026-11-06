@@ -30,6 +30,7 @@ test("Store selection keeps coupons, comparison, history and account filters ali
         id: `account-${id}`, name: `Conta ${id}`, auth: "ready",
         source: "android",
         last_success: "2026-11-04T12:00:00Z", error: null,
+        balance: id === 3 ? null : { cents: id === 1 ? 1583 : 0, checkedAt: "2026-11-04T11:58:00Z", error: id === 2 ? 1 : 0 },
       })),
       coupons: [
         offer("Continente", "account-1", "c1"),
@@ -50,6 +51,18 @@ test("Store selection keeps coupons, comparison, history and account filters ali
     await page.route("**/api/state", (route) => route.fulfill({ json: state }));
     await page.goto(`http://127.0.0.1:${server.httpServer.address().port}`);
     await page.getByRole("heading", { name: "Continente · 2 cupões" }).waitFor();
+    const balances = page.locator(".account-balance strong");
+    assert.deepEqual((await balances.allTextContents()).map(text => text.replace(/\s/g, " ")), ["15,83 €", "0,00 €", "Por verificar"]);
+    assert.equal(await page.getByText("Não foi possível atualizar o saldo. O valor anterior foi mantido.").count(), 1);
+    assert.equal(await page.getByText(/Saldo verificado:.*4\/11, 11:58/).count(), 2);
+    const { mkdir } = await import("node:fs/promises");
+    await mkdir(".impeccable/review", { recursive: true });
+    await page.screenshot({ path: ".impeccable/review/balance-mobile.png", fullPage: true });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    assert.equal(await page.getByRole("link", { name: "CC Cupões, página inicial" }).count(), 1);
+    await page.screenshot({ path: ".impeccable/review/balance-desktop.png", fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 });
     const stores = page.getByRole("group", { name: "Filtrar por loja" });
     assert.deepEqual(await stores.locator("button > span:last-child").allTextContents(),
       ["Continente", "Galp", "Wells", "Pizza Hut", "Taco Bell", "KFC", "Pans & Company"]);

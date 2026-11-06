@@ -15,6 +15,7 @@ export function openStore(filename = path.join(dataDir, "coupons.sqlite")) {
     CREATE TABLE IF NOT EXISTS outbox (id TEXT PRIMARY KEY, message TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, sent_at TEXT, error TEXT);
     CREATE TABLE IF NOT EXISTS operation_lock (id INTEGER PRIMARY KEY CHECK(id=1), pid INTEGER NOT NULL, owner TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS card_sessions (account_id TEXT PRIMARY KEY REFERENCES accounts(id), expires_at INTEGER NOT NULL, image BLOB NOT NULL);
+    CREATE TABLE IF NOT EXISTS account_balances (account_id TEXT PRIMARY KEY REFERENCES accounts(id), cents INTEGER CHECK(cents>=0), checked_at TEXT, error INTEGER NOT NULL DEFAULT 0);
     CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);`);
   if (filename !== ":memory:") chmodSync(filename, 0o600);
   for (const a of accounts)
@@ -43,6 +44,17 @@ export function enqueue(db, id, message, now = new Date()) {
   db.prepare(
     "INSERT OR IGNORE INTO outbox(id,message,created_at) VALUES(?,?,?)",
   ).run(id, message.slice(0, 3900), now.toISOString());
+}
+export function saveBalance(db, accountId, balance) {
+  if (balance === null) {
+    db.prepare("INSERT INTO account_balances(account_id,error) VALUES(?,1) ON CONFLICT(account_id) DO UPDATE SET error=1").run(accountId);
+    return;
+  }
+  if (!Number.isSafeInteger(balance?.cents) || balance.cents < 0 ||
+      typeof balance.checkedAt !== "string" || !Number.isFinite(Date.parse(balance.checkedAt)))
+    throw new Error("INVALID_BALANCE");
+  db.prepare("INSERT INTO account_balances VALUES(?,?,?,0) ON CONFLICT(account_id) DO UPDATE SET cents=excluded.cents,checked_at=excluded.checked_at,error=0")
+    .run(accountId, balance.cents, balance.checkedAt);
 }
 export function saveSnapshot(db, accountId, coupons, now = new Date()) {
   if (!Array.isArray(coupons) || !coupons.length)
@@ -211,6 +223,7 @@ export function dashboardData(db, now = new Date()) {
       ...account,
       source: accounts.find((configured) => configured.id === account.id)?.source || "web",
       card: db.prepare("SELECT expires_at AS expiresAt FROM card_sessions WHERE account_id=?").get(account.id) || null,
+      balance: db.prepare("SELECT cents,checked_at AS checkedAt,error FROM account_balances WHERE account_id=?").get(account.id) || null,
     })),
     coupons,
     events: db

@@ -13,6 +13,7 @@ import {
 } from "./extraction.js";
 import {
   saveSnapshot,
+  saveBalance,
   recordFailure,
   queueSavedExpiryReminders,
 } from "./storage.js";
@@ -62,7 +63,7 @@ export async function runChecks(db, id = "all", { scheduledDay } = {}) {
         try {
           let coupons;
           if (account.source === "android") {
-            coupons = await checkAndroid(account.id);
+            coupons = await checkAndroid(account.id, (balance) => saveBalance(db, account.id, balance));
           } else {
             profile = await openCheckProfile(account.id);
             page = profile.page;

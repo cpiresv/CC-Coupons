@@ -18,7 +18,7 @@ mock.module("../src/notifications.js", {
   namedExports: { flushNotifications: (...args) => flushNotifications(...args) },
 });
 const { runChecks } = await import("../src/monitor.js");
-const { openStore, saveSnapshot } = await import("../src/storage.js");
+const { openStore, saveSnapshot, saveBalance, dashboardData } = await import("../src/storage.js");
 const { isBusy } = await import("../src/lock.js");
 const { CheckError, normalizeCoupon } = await import("../src/extraction.js");
 const ids = ["account-1", "account-2", "account-3"];
@@ -171,4 +171,30 @@ test("a temporary Android control failure retries without manual login", async (
     t.mock.timers.reset();
     db.close();
   }
+});
+
+test("Daily checks save balances independently from coupon success, and manual checks refresh them too", async () => {
+  const db = openStore(":memory:");
+  const checkedAt = new Date().toISOString();
+  saveBalance(db, "account-2", { cents: 1234, checkedAt: "2026-11-05T09:00:00.000Z" });
+  checkAndroid = async (id, onBalance) => {
+    onBalance(id === "account-2" ? null : { cents: id === "account-1" ? 0 : 9876, checkedAt });
+    if (id === "account-3") throw new CheckError("LAYOUT_CHANGED");
+    return [coupon];
+  };
+  flushNotifications = async () => {};
+  try {
+    const results = await runChecks(db, "all", { scheduledDay: "2026-11-06" });
+    assert.deepEqual(results.map(result => result.ok), [true, true, false]);
+    const balances = dashboardData(db).accounts.map(a => ({ ...a.balance }));
+    assert.deepEqual(balances, [
+      { cents: 0, checkedAt, error: 0 },
+      { cents: 1234, checkedAt: "2026-11-05T09:00:00.000Z", error: 1 },
+      { cents: 9876, checkedAt, error: 0 },
+    ]);
+    checkAndroid = async (_id, onBalance) => { onBalance({ cents: 5678, checkedAt }); return [coupon]; };
+    await runChecks(db, "account-2");
+    assert.equal(dashboardData(db).accounts[1].balance.cents, 5678);
+    assert.equal(dashboardData(db).accounts[1].balance.error, 0);
+  } finally { db.close(); }
 });

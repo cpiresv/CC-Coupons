@@ -7,6 +7,7 @@ import path from "node:path";
 import { dataDir } from "./config.js";
 import { parseDateRange } from "./dates.js";
 import { CheckError } from "./extraction.js";
+import { readAndroidBalance } from "./balance.js";
 
 const execute = promisify(execFile);
 const activity = "pt.continente.ContinenteTelemovel/.MainActivity";
@@ -334,9 +335,18 @@ export async function openAndroid(accountId, { headed = false } = {}) {
   }
 }
 
-export async function checkAndroid(accountId) {
-  const device = await openAndroid(accountId);
-  try { return await collectAndroidCoupons(device); }
+export async function checkAndroid(accountId, onBalance = () => {}) {
+  const device = await openAndroid(accountId).catch((error) => {
+    onBalance(null);
+    throw error;
+  });
+  try {
+    let balance = null;
+    try { balance = await readAndroidBalance(device); }
+    catch { await device.screenshot(); }
+    onBalance(balance);
+    return await collectAndroidCoupons(device);
+  }
   catch (error) {
     await device.screenshot();
     await writeFile(path.join(dataDir, "android", `${accountId}-last-error.json`), JSON.stringify({ code: error.code, stack: error.stack, detail: error.cause?.stderr }), { mode: 0o600 }).catch(() => {});
