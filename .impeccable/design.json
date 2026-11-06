@@ -60,31 +60,11 @@
       },
       "connected": {
         "role": "secondary",
-        "displayName": "Connected Green",
-        "tonalRamp": [
-          "oklch(15.00% 0.06862 156.98)",
-          "oklch(26.43% 0.06862 156.98)",
-          "oklch(37.86% 0.06862 156.98)",
-          "oklch(49.29% 0.06862 156.98)",
-          "oklch(60.71% 0.06862 156.98)",
-          "oklch(72.14% 0.06862 156.98)",
-          "oklch(83.57% 0.06862 156.98)",
-          "oklch(95.00% 0.06862 156.98)"
-        ]
+        "displayName": "Confirmed Status Red"
       },
       "positive": {
         "role": "secondary",
-        "displayName": "Positive Green",
-        "tonalRamp": [
-          "oklch(15.00% 0.07100 157.73)",
-          "oklch(26.43% 0.07100 157.73)",
-          "oklch(37.86% 0.07100 157.73)",
-          "oklch(49.29% 0.07100 157.73)",
-          "oklch(60.71% 0.07100 157.73)",
-          "oklch(72.14% 0.07100 157.73)",
-          "oklch(83.57% 0.07100 157.73)",
-          "oklch(95.00% 0.07100 157.73)"
-        ]
+        "displayName": "Confirmation Red"
       },
       "new-background": {
         "role": "secondary",
@@ -92,17 +72,7 @@
       },
       "success-background": {
         "role": "secondary",
-        "displayName": "Success Wash",
-        "tonalRamp": [
-          "oklch(15.00% 0.01635 142.56)",
-          "oklch(26.43% 0.01635 142.56)",
-          "oklch(37.86% 0.01635 142.56)",
-          "oklch(49.29% 0.01635 142.56)",
-          "oklch(60.71% 0.01635 142.56)",
-          "oklch(72.14% 0.01635 142.56)",
-          "oklch(83.57% 0.01635 142.56)",
-          "oklch(95.00% 0.01635 142.56)"
-        ]
+        "displayName": "Confirmation Wash"
       },
       "amber": {
         "role": "secondary",

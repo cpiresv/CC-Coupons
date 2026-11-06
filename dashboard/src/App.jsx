@@ -180,7 +180,7 @@ function Comparison({ coupons, accounts }) {
               <div className="compare-value" key={a.id}>
                 <span className="mobile-account">{a.name}</span>
                 {g.accounts[a.id]?.map((c) => (
-                  <span className={c.status === "upcoming" ? "upcoming" : undefined} key={c.key}>
+                  <span className={c.status} key={c.key}>
                     <strong>{c.discount || "Ver imagem"}</strong>
                     <small>
                       {c.status === "upcoming" ? "Em breve" : "Disponível"}
@@ -597,7 +597,7 @@ export default function App() {
                 <div className="coupon-list">
                   {filtered.map((c) => (
                     <article
-                      className={`coupon ${isFeatured(c) ? "featured" : ""} ${c.status === "upcoming" ? "upcoming" : ""} ${c.expiring ? "expiring" : ""}`}
+                      className={`coupon ${isFeatured(c) ? "featured" : ""} ${c.status} ${c.expiring ? "expiring" : ""}`}
                       key={c.accountId + c.key}
                     >
                       <div className="discount">

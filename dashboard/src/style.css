@@ -227,7 +227,7 @@ h1 {
   background: currentColor;
 }
 .connected {
-  color: #326146;
+  color: var(--brand-hover);
 }
 .card-control {
   margin-top: 20px;
@@ -427,11 +427,18 @@ input[type="date"] {
 .compare-row.featured {
   background: var(--brand-soft);
 }
-.coupon.featured:not(.upcoming) .discount {
+.coupon.available .discount {
   align-self: start;
   margin: 0 6px;
   padding: 12px 4px;
   border-radius: 8px;
+  color: var(--brand-hover);
+  background: var(--brand-soft);
+}
+.coupon.available .discount span {
+  color: inherit;
+}
+.coupon.featured:not(.upcoming) .discount {
   color: #fff;
   background: var(--brand);
 }
@@ -608,6 +615,9 @@ dd {
 .compare-value .upcoming {
   color: #606762;
 }
+.compare-value .available strong {
+  color: var(--brand-hover);
+}
 .mobile-account {
   display: none;
 }
@@ -660,8 +670,8 @@ footer > div {
   color: #893b23;
 }
 .message.success {
-  background: #e7f0e6;
-  color: #285a3f;
+  background: var(--brand-soft);
+  color: var(--brand-hover);
 }
 .message.offline {
   background: var(--amber-bg);

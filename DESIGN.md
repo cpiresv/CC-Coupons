@@ -13,10 +13,10 @@ colors:
   account-divider: "#e5d1d5"
   field-border: "#cdbfc2"
   inverse-muted: "#fff5f5"
-  connected: "#326146"
-  positive: "#285a3f"
+  connected: "#bd0712"
+  positive: "#bd0712"
   new-background: "#fff0f1"
-  success-background: "#e7f0e6"
+  success-background: "#fff0f1"
   amber: "#795004"
   amber-bg: "#fff4d4"
   error: "#893b23"
@@ -166,8 +166,8 @@ Continente red identifies navigation, actions, selections, and featured offers. 
 
 ### Secondary
 
-- **Connected Green** (`connected`): a saved-session indicator.
-- **Positive Green** (`positive`): successful-check text.
+- **Confirmed Status Red** (`connected`): a saved-session indicator.
+- **Confirmation Red** (`positive`): successful-check text.
 - **New Offer Wash** (`new-background`): the compact new-offer badge.
 - **Success Wash** (`success-background`): the successful-check message.
 - **Amber** (`amber`, `amber-bg`): account attention, approaching expiry, and the urgency badge.
@@ -274,7 +274,7 @@ Three summaries share a pale red container with dividers. Each shows the account
 
 ### Ruled Offer Row
 
-The discount leads, followed by brand, account, badges, offer title, and the conditions disclosure. A separate validity block includes the written status, end date, and start date. Approaching expiry changes the end-date emphasis to amber.
+Available coupons show a red discount on a pale red tile. The discount leads, followed by brand, account, badges, offer title, and the conditions disclosure. A separate validity block includes the written status, end date, and start date. Approaching expiry changes the end-date emphasis to amber.
 
 Upcoming offers use a light gray surface, neutral text, grayscale images, and an **Em breve** badge. Their validity block leads with **Disponível a partir de** and the start date, followed by the end date. Conditions remain accessible. Upcoming account comparison values also use neutral text and retain their written state.
 
@@ -284,7 +284,7 @@ Unknown discounts render **Ver imagem** with **Valor não identificado**. The di
 
 ### Account Comparison
 
-Matching offers share one identity and date range, then display each account's values. Comparison rows have 24px padding; the desktop header uses 12px vertical and 24px horizontal padding so its columns align. Mobile rows use 20px vertical and 16px horizontal padding. The desktop heading names each account column. Mobile labels repeat the account name above each value. **Sem esta oferta** and **Por verificar** distinguish known absence from missing verification. The account filter controls the next manual check; comparison continues to show all accounts.
+Matching offers share one identity and date range, then display each account's values. Available values use red; upcoming values remain gray. Comparison rows have 24px padding; the desktop header uses 12px vertical and 24px horizontal padding so its columns align. Mobile rows use 20px vertical and 16px horizontal padding. The desktop heading names each account column. Mobile labels repeat the account name above each value. **Sem esta oferta** and **Por verificar** distinguish known absence from missing verification. The account filter controls the next manual check; comparison continues to show all accounts.
 
 ### Filtered History
 
@@ -292,7 +292,7 @@ The history view respects the selected account. Timestamp, change type, account 
 
 ### Feedback and Empty States
 
-Errors use the rust message treatment with `role="alert"`. Successful checks and initial loading use `role="status"`. Empty copy distinguishes a filter with no matches from an account with no confirmed records. Preserved records remain accompanied by the failed-check state. Footer text reports portal limitations, configured notification state, and schedule context without implying delivery proof.
+Errors use the rust message treatment with `role="alert"`. Successful checks and initial loading use `role="status"`. Confirmation banners use pale red with dark red text. Empty copy distinguishes a filter with no matches from an account with no confirmed records. Preserved records remain accompanied by the failed-check state. Footer text reports portal limitations, configured notification state, and schedule context without implying delivery proof.
 
 ## Do's and Don'ts
 
