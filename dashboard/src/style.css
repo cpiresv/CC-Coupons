@@ -509,6 +509,7 @@ input[type="date"] {
 .discount strong {
   font-size: 2rem;
   letter-spacing: -0.035em;
+  text-align: center;
   white-space: nowrap;
 }
 .discount span {
