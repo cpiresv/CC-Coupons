@@ -278,6 +278,8 @@ Two summaries share a sage container with one divider. Each shows the account na
 
 The discount leads, followed by brand, account, badges, offer title, and the conditions disclosure. A separate validity block includes the written status, end date, and start date. Approaching expiry changes the end-date emphasis to amber.
 
+Upcoming offers use a light gray surface, neutral text, grayscale images, and an **Em breve** badge. Their validity block leads with **Disponível a partir de** and the start date, followed by the end date. Conditions remain accessible. Upcoming account comparison values also use neutral text and retain their written state.
+
 Unknown discounts render **Ver imagem** with **Valor não identificado**. The disclosure contains conditions, code, known purchase information, first detection, and the original offer image when available. Android offers use the app’s accessible discount text and omit the image. This image is evidence content, not decoration. Details use a side-by-side layout on desktop and stack on mobile.
 
 ### Account Comparison

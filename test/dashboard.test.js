@@ -34,10 +34,10 @@ test("Store selection keeps coupons, comparison, history and account filters ali
       })),
       coupons: [
         offer("Continente", "account-1", "c1"),
-        offer("Continente", "account-2", "c2", { status: "upcoming", isNew: false }),
+        offer("Continente", "account-2", "c2", { status: "upcoming", startDate: "2026-11-09", isNew: false }),
         offer("Galp", "account-3", "g1", { expiring: true, imageUrl: null }),
         offer("Wells", "account-1", "w1", { status: "expired" }),
-        offer("Pizza Hut", "account-1", "p1", { status: "upcoming", isNew: false }),
+        offer("Pizza Hut", "account-1", "p1", { status: "upcoming", startDate: "2026-11-09", isNew: false }),
         offer("Taco Bell", "account-2", "t1"),
         offer("KFC", "account-3", "k1"),
         offer("Pans & Company", "account-1", "pc1"),
@@ -51,6 +51,16 @@ test("Store selection keeps coupons, comparison, history and account filters ali
     await page.route("**/api/state", (route) => route.fulfill({ json: state }));
     await page.goto(`http://127.0.0.1:${server.httpServer.address().port}`);
     await page.getByRole("heading", { name: "Continente · 2 cupões" }).waitFor();
+    const upcoming = page.locator(".coupon.upcoming");
+    assert.equal(await upcoming.count(), 1);
+    assert.equal(await upcoming.locator(".badge.upcoming").innerText(), "Em breve");
+    assert.equal(await upcoming.locator(".status-label").innerText(), "Disponível a partir de");
+    assert.equal(await upcoming.locator(".validity strong").innerText(), "9/11/2026");
+    assert.equal(await upcoming.locator(".validity small").innerText(), "Até 30/11/2026");
+    await upcoming.locator("summary").click();
+    assert.equal(await upcoming.getByText("c2", { exact: true }).isVisible(), true);
+    await upcoming.locator("summary").click();
+    assert.equal(await page.locator(".coupon:not(.upcoming) .status-label").innerText(), "Disponíveis");
     const balances = page.locator(".account-balance strong");
     assert.deepEqual((await balances.allTextContents()).map(text => text.replace(/\s/g, " ")), ["15,83 €", "0,00 €", "Por verificar"]);
     assert.equal(await page.getByText("Não foi possível atualizar o saldo. O valor anterior foi mantido.").count(), 1);
@@ -63,6 +73,9 @@ test("Store selection keeps coupons, comparison, history and account filters ali
     assert.equal(await page.getByRole("link", { name: "CC Cupões, página inicial" }).count(), 1);
     await page.screenshot({ path: ".impeccable/review/balance-desktop.png", fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("button", { name: "Comparar contas", exact: true }).click();
+    assert.equal(await page.locator(".compare-value .upcoming").innerText(), "5 €\nEm breve");
+    await page.getByRole("button", { name: "Cupões", exact: true }).click();
     const stores = page.getByRole("group", { name: "Filtrar por loja" });
     assert.deepEqual(await stores.locator("button > span:last-child").allTextContents(),
       ["Continente", "Galp", "Wells", "Pizza Hut", "Taco Bell", "KFC", "Pans & Company"]);

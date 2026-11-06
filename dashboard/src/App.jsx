@@ -164,7 +164,7 @@ function Comparison({ coupons, accounts }) {
               <div className="compare-value" key={a.id}>
                 <span className="mobile-account">{a.name}</span>
                 {g.accounts[a.id]?.map((c) => (
-                  <span key={c.key}>
+                  <span className={c.status === "upcoming" ? "upcoming" : undefined} key={c.key}>
                     <strong>{c.discount || "Ver imagem"}</strong>
                     <small>
                       {c.status === "upcoming" ? "Em breve" : "Disponível"}
@@ -585,7 +585,7 @@ export default function App() {
                 <div className="coupon-list">
                   {filtered.map((c) => (
                     <article
-                      className={`coupon ${c.expiring ? "expiring" : ""}`}
+                      className={`coupon ${c.status === "upcoming" ? "upcoming" : ""} ${c.expiring ? "expiring" : ""}`}
                       key={c.accountId + c.key}
                     >
                       <div className="discount">
@@ -598,6 +598,9 @@ export default function App() {
                         <div className="offer-labels">
                           <span className="brand">{c.brand}</span>
                           <span>{accountName(c.accountId)}</span>
+                          {c.status === "upcoming" && (
+                            <span className="badge upcoming">Em breve</span>
+                          )}
                           {c.isNew && c.present && (
                             <span className="badge new">Novo</span>
                           )}
@@ -610,10 +613,10 @@ export default function App() {
                       </div>
                       <div className="validity">
                         <span className="status-label">
-                          {statuses[c.status]}
+                          {c.status === "upcoming" ? "Disponível a partir de" : statuses[c.status]}
                         </span>
-                        <strong>Até {date(c.endDate)}</strong>
-                        <small>Desde {date(c.startDate)}</small>
+                        <strong>{c.status === "upcoming" ? date(c.startDate) : `Até ${date(c.endDate)}`}</strong>
+                        <small>{c.status === "upcoming" ? `Até ${date(c.endDate)}` : `Desde ${date(c.startDate)}`}</small>
                       </div>
                     </article>
                   ))}
