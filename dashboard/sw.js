@@ -2,18 +2,24 @@ const CACHE = "cc-coupons-shell-__VERSION__";
 const ASSETS = __ASSETS__;
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) =>
-    cache.addAll(ASSETS.map((url) => new Request(url, { cache: "reload" }))),
-  ));
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await cache.addAll(ASSETS.map((url) => new Request(url, { cache: "reload" })));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
-    for (const key of await caches.keys()) {
-      if (key.startsWith("cc-coupons-shell-") && key !== CACHE)
-        await caches.delete(key);
-    }
+    const previous = (await caches.keys()).filter((key) => key.startsWith("cc-coupons-shell-") && key !== CACHE);
+    await Promise.all(previous.map((key) => caches.delete(key)));
     await self.clients.claim();
+    if (previous.length) {
+      for (const client of await self.clients.matchAll({ type: "window" })) {
+        // Navigation must not hold activation open; its fetch waits for activation.
+        client.navigate(client.url).catch(() => {});
+      }
+    }
   })());
 });
 

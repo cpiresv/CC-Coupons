@@ -1,4 +1,4 @@
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { readState, rememberCard } from "./offline.js";
 import CardControl from "./CardControl.jsx";
@@ -31,6 +31,16 @@ const kinds = {
   removed: "Retirado",
   expired: "Expirado",
 };
+function isFeatured(coupon) {
+  if (!coupon.present || !["available", "upcoming"].includes(coupon.status) ||
+    !/^5(?:[,.]00)?\s*(?:€|EUR)$/i.test(coupon.discount?.trim() || "")) return false;
+  const title = coupon.title.replace(/\s+/g, " ").trim();
+  return (coupon.brand === "Continente" && /^numa compra superior a 20(?:[,.]00)?\s*(?:€|eur) no continente\b/i.test(title)) ||
+    (coupon.brand === "Wells" && /^numa compra superior a 5(?:[,.]00)?\s*(?:€|eur) nas lojas wells\b/i.test(title));
+}
+function FeaturedBadge() {
+  return <span className="badge featured"><Star size={12} aria-hidden="true" />Destaque</span>;
+}
 const date = (value) =>
   new Intl.DateTimeFormat("pt-PT", {
     day: "numeric",
@@ -150,11 +160,17 @@ function Comparison({ coupons, accounts }) {
         ))}
       </div>
       {[...groups.values()]
-        .sort((a, b) => a.coupon.endDate.localeCompare(b.coupon.endDate))
+        .sort((a, b) =>
+          Number(isFeatured(b.coupon) && b.coupon.status === "available") -
+          Number(isFeatured(a.coupon) && a.coupon.status === "available") ||
+          a.coupon.endDate.localeCompare(b.coupon.endDate))
         .map((g) => (
-          <div className="compare-row" key={g.coupon.key}>
+          <div className={`compare-row ${isFeatured(g.coupon) ? "featured" : ""} ${g.coupon.status === "upcoming" ? "upcoming" : ""}`} key={g.coupon.key}>
             <div>
-              <span className="brand">{g.coupon.brand}</span>
+              <div className="offer-labels">
+                <span className="brand">{g.coupon.brand}</span>
+                {isFeatured(g.coupon) && <FeaturedBadge />}
+              </div>
               <h3>{g.coupon.title.toLocaleLowerCase("pt-PT")}</h3>
               <small>
                 {date(g.coupon.startDate)} — {date(g.coupon.endDate)}
@@ -334,6 +350,8 @@ export default function App() {
     )
     .sort(
       (a, b) =>
+        Number(isFeatured(b) && b.status === "available") -
+        Number(isFeatured(a) && a.status === "available") ||
         a.endDate.localeCompare(b.endDate) || a.title.localeCompare(b.title),
     );
   const historyEvents = (data?.events || []).filter(
@@ -580,12 +598,12 @@ export default function App() {
                     {filtered.length}{" "}
                     {filtered.length === 1 ? "cupão" : "cupões"}
                   </h2>
-                  <span>Por data de validade</span>
+                  <span>{filtered.some((c) => isFeatured(c) && c.status === "available") ? "Destaques primeiro" : "Por data de validade"}</span>
                 </div>
                 <div className="coupon-list">
                   {filtered.map((c) => (
                     <article
-                      className={`coupon ${c.status === "upcoming" ? "upcoming" : ""} ${c.expiring ? "expiring" : ""}`}
+                      className={`coupon ${isFeatured(c) ? "featured" : ""} ${c.status === "upcoming" ? "upcoming" : ""} ${c.expiring ? "expiring" : ""}`}
                       key={c.accountId + c.key}
                     >
                       <div className="discount">
@@ -598,6 +616,7 @@ export default function App() {
                         <div className="offer-labels">
                           <span className="brand">{c.brand}</span>
                           <span>{accountName(c.accountId)}</span>
+                          {isFeatured(c) && <FeaturedBadge />}
                           {c.status === "upcoming" && (
                             <span className="badge upcoming">Em breve</span>
                           )}

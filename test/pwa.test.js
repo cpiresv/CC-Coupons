@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import express from "express";
@@ -111,6 +111,122 @@ test("Built PWA survives an offline browser restart and reconnects without repla
   } finally {
     await context?.close();
     if (server) await new Promise((resolve) => server.close(resolve));
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("PWA upgrades existing tabs automatically without clearing data or replaying checks", { timeout: 60000 }, async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "cc-coupons-update-"));
+  let server, browser;
+  try {
+    for (const version of ["first", "second"]) {
+      await build({
+        build: { outDir: path.join(directory, version) }, logLevel: "silent",
+        plugins: [{ name: "test-version", transformIndexHtml: html => html.replace("<head>", `<head><meta name="test-version" content="${version}">`) }],
+      });
+    }
+    const legacyWorker = `
+      const CACHE = 'cc-coupons-shell-legacy';
+      self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.add('/'))));
+      self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));
+      self.addEventListener('fetch', event => {
+        if (event.request.method === 'GET' && new URL(event.request.url).pathname === '/')
+          event.respondWith(caches.open(CACHE).then(cache => cache.match('/')));
+      });`;
+    let version = "legacy", broken = false, workerRequests = 0, writes = 0;
+    const app = express();
+    app.use((_req, res, next) => { res.set("Cache-Control", "no-store"); next(); });
+    app.get("/sw.js", async (_req, res) => {
+      workerRequests++;
+      let source = version === "legacy" ? legacyWorker : await readFile(path.join(directory, version, "sw.js"), "utf8");
+      if (broken) source = source.replace('const ASSETS = [', 'const ASSETS = ["/missing-release-file.js",');
+      res.type("application/javascript").send(source);
+    });
+    app.get("/missing-release-file.js", (_req, res) => res.sendStatus(503));
+    app.get("/api/state", (_req, res) => res.json({
+      accounts: [{ id: "account-1", name: "Conta de teste", auth: "ready" }],
+      coupons: [{ accountId: "account-1", key: "test", code: "test", brand: "Continente",
+        title: "Oferta de teste", description: "Condições de teste", discount: "5 €",
+        startDate: "2020-01-01", endDate: "2099-12-31", firstSeen: "2020-01-01T12:00:00Z",
+        present: true, status: "available", imageUrl: null }],
+      events: [], notifications: [], running: true, serverNow: Date.now(),
+      manualCheck: { id: "in-progress", status: "running", startedAt: new Date().toISOString() },
+    }));
+    app.post(/.*/, (_req, res) => { writes++; res.sendStatus(500); });
+    app.get("/", (_req, res, next) => version === "legacy"
+      ? res.send("<!doctype html><h1>Old dashboard</h1><script>navigator.serviceWorker.register('/sw.js')</script>")
+      : next());
+    app.use((req, res, next) => express.static(path.join(directory, version))(req, res, next));
+    server = app.listen(0, "127.0.0.1");
+    await new Promise(resolve => server.once("listening", resolve));
+    const url = `http://127.0.0.1:${server.address().port}`;
+    browser = await chromium.launch({ channel: "chrome", headless: true });
+    const context = await browser.newContext();
+    const page = await context.newPage(), other = await context.newPage();
+    const errors = [];
+    for (const tab of [page, other]) {
+      tab.setDefaultTimeout(10000);
+      tab.on("pageerror", error => errors.push(error.message));
+      await tab.clock.install();
+      await tab.goto(url);
+      await tab.waitForFunction(() => !!navigator.serviceWorker.controller);
+    }
+    await page.evaluate(() => {
+      document.cookie = "update-test=keep; SameSite=Strict; path=/";
+      localStorage.setItem("update-test", "keep");
+    });
+    const expectVersion = async (tab, expected) => {
+      await tab.waitForFunction(expected => document.querySelector('meta[name="test-version"]')?.content === expected, expected);
+      await tab.getByText(/A verificar cupões no Mac/).waitFor();
+      assert.equal(await tab.evaluate(() => localStorage.getItem("update-test")), "keep");
+      assert.match(await tab.evaluate(() => document.cookie), /update-test=keep/);
+    };
+    // A normal reload discovers the updater even while another legacy tab stays open.
+    version = "first";
+    await page.reload();
+    await expectVersion(page, "first");
+    await expectVersion(other, "first");
+
+    // An incomplete release must leave the working offline shell installed.
+    broken = true;
+    await page.evaluate(async () => {
+      const registration = await navigator.serviceWorker.getRegistration();
+      const failed = new Promise(resolve => registration.addEventListener("updatefound", () => {
+        const worker = registration.installing;
+        worker.addEventListener("statechange", () => { if (worker.state === "redundant") resolve(); });
+      }, { once: true }));
+      await registration.update();
+      await failed;
+    });
+    assert.equal(await page.locator('meta[name="test-version"]').getAttribute("content"), "first");
+    await context.setOffline(true);
+    await page.reload();
+    await page.getByText(/A mostrar a cópia guardada/).waitFor();
+    assert.equal(await page.locator(".coupon").count(), 1);
+    broken = false;
+    await context.setOffline(false);
+    await page.getByText(/A verificar cupões no Mac/).waitFor();
+    await page.evaluate(async () => (await navigator.serviceWorker.getRegistration()).update());
+
+    // The foreground timer discovers the next release without a manual reload.
+    version = "second";
+    await page.clock.fastForward(60000);
+    await expectVersion(page, "second");
+    await expectVersion(other, "second");
+    const cacheNames = await page.evaluate(() => caches.keys());
+    assert.equal(cacheNames.filter(name => name.startsWith("cc-coupons-shell-")).length, 1);
+    let reloads = 0;
+    page.on("domcontentloaded", () => reloads++);
+    const before = workerRequests;
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await page.evaluate(async () => (await navigator.serviceWorker.getRegistration()).update());
+    assert(workerRequests > before);
+    assert.equal(reloads, 0);
+    assert.equal(writes, 0);
+    assert.deepEqual(errors, []);
+  } finally {
+    await browser?.close();
+    if (server) await new Promise(resolve => server.close(resolve));
     await rm(directory, { recursive: true, force: true });
   }
 });

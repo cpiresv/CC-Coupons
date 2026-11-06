@@ -132,6 +132,43 @@ test("Store selection keeps coupons, comparison, history and account filters ali
     await page.setViewportSize({ width: 320, height: 700 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 
+    const continenteTitle = "NUMA COMPRA SUPERIOR A 20€ NO CONTINENTE";
+    const wellsTitle = "NUMA COMPRA SUPERIOR A 5€ NAS LOJAS WELLS (NÃO ACUMULÁVEL COM OUTRAS PROMOÇÕES)";
+    state = { ...state, coupons: [
+      offer("Continente", "account-1", "regular"),
+      offer("Continente", "account-1", "featured", { title: continenteTitle, discount: "5,00 €", endDate: "2026-12-31" }),
+      offer("Continente", "account-2", "future", { title: continenteTitle, status: "upcoming", startDate: "2026-12-01", endDate: "2026-12-31" }),
+      ...["removed", "used", "expired"].map(status => offer("Continente", "account-1", status, { title: continenteTitle, status, present: status !== "removed" })),
+      offer("Continente", "account-1", "wrong-discount", { title: continenteTitle, discount: "75 €" }),
+      offer("Continente", "account-1", "percentage", { title: continenteTitle, discount: "5 %" }),
+      offer("Continente", "account-1", "wrong-threshold", { title: "NUMA COMPRA SUPERIOR A 200€ NO CONTINENTE" }),
+      offer("Wells", "account-1", "wells-featured", { title: wellsTitle }),
+      offer("Wells", "account-2", "wells-removed", { title: wellsTitle, status: "removed", present: false }),
+      offer("Wells", "account-1", "wells-wrong-threshold", { title: "NUMA COMPRA SUPERIOR A 50€ NAS LOJAS WELLS" }),
+      offer("Pizza Hut", "account-1", "other-store", { title: continenteTitle }),
+    ] };
+    await page.reload();
+    await stores.getByRole("button", { name: /^Continente/ }).click();
+    await page.getByRole("combobox", { name: /^Estado/ }).selectOption("all");
+    await page.getByRole("heading", { name: "Continente · 9 cupões", exact: true }).waitFor();
+    assert.equal(await page.locator(".coupon.featured").count(), 2);
+    assert.equal(await page.locator(".coupon").first().locator(".discount strong").innerText(), "5,00 €");
+    assert.equal(await page.locator(".coupon").first().getByText("Destaque", { exact: true }).count(), 1);
+    assert.equal(await page.getByText("Destaques primeiro", { exact: true }).count(), 1);
+    assert.equal(await page.locator(".coupon.featured.upcoming").evaluate(el => getComputedStyle(el).backgroundColor), "rgb(240, 241, 240)");
+    await page.locator(".coupon.featured").first().locator("summary").click();
+    assert.equal(await page.locator(".coupon.featured").first().getByText("featured", { exact: true }).isVisible(), true);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.getByRole("button", { name: "Comparar contas", exact: true }).click();
+    assert.equal(await page.locator(".compare-row:not(.compare-heading)").first().getByText("Destaque", { exact: true }).count(), 1);
+    await page.getByRole("button", { name: "Cupões", exact: true }).click();
+    await stores.getByRole("button", { name: /^Wells/ }).click();
+    assert.equal(await page.locator(".coupon.featured").count(), 1);
+    assert.equal(await page.locator(".coupon.featured h3").textContent(), wellsTitle.toLocaleLowerCase("pt-PT"));
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await stores.getByRole("button", { name: /^Pizza Hut/ }).click();
+    assert.equal(await page.locator(".coupon.featured").count(), 0);
+
     state = { ...state, coupons: [offer("TacoBell", "account-1", "t2"), offer("Pans&Company", "account-2", "pc2")] };
     await page.reload();
     await page.getByRole("heading", { name: "TacoBell · 1 cupão", exact: true }).waitFor();

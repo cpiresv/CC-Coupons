@@ -429,7 +429,23 @@ input[type="date"] {
   padding: 26px 20px 26px 0;
   border-bottom: 1px solid var(--line);
 }
-.coupon.upcoming {
+.coupon.featured,
+.compare-row.featured {
+  background: var(--sage);
+}
+.coupon.featured:not(.upcoming) .discount {
+  align-self: start;
+  margin: 0 6px;
+  padding: 12px 4px;
+  border-radius: 8px;
+  color: #fff;
+  background: var(--green);
+}
+.coupon.featured:not(.upcoming) .discount span {
+  color: #d0e4d5;
+}
+.coupon.upcoming,
+.compare-row.upcoming {
   --ink: #565c58;
   --muted: #606762;
   color: var(--ink);
@@ -485,6 +501,17 @@ input[type="date"] {
   background: var(--amber-bg);
 }
 .badge.upcoming {
+  color: var(--ink);
+  background: #dfe2df;
+}
+.badge.featured {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #fff;
+  background: var(--green);
+}
+.upcoming .badge.featured {
   color: var(--ink);
   background: #dfe2df;
 }
