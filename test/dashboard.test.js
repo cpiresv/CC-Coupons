@@ -128,3 +128,84 @@ test("Store selection keeps coupons, comparison, history and account filters ali
     await server.close();
   }
 });
+
+test("Card activation shows a confirmed per-account timer across reload, sleep, offline and expiry", async () => {
+  const server = await createServer({ server: { host: "127.0.0.1", port: 0 }, logLevel: "silent" });
+  let browser;
+  try {
+    await server.listen();
+    browser = await chromium.launch({ channel: "chrome", headless: true });
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    page.setDefaultTimeout(8000);
+    let serverNow = Date.parse("2026-11-06T16:00:00Z"), activation, fail = false, offline = false;
+    const state = {
+      accounts: [1, 2, 3].map(id => ({ id: `account-${id}`, name: `Conta ${id}`, auth: "ready", source: "android", card: null })),
+      coupons: [], events: [], notifications: [], running: false,
+    };
+    await page.clock.install({ time: new Date(serverNow + 120000) });
+    await page.clock.pauseAt(new Date(serverNow + 120000));
+    await page.route("**/api/state", route => offline ? route.abort() : route.fulfill({ json: { ...state, serverNow } }));
+    await page.route("**/api/cards/*/activate", async route => {
+      assert.equal(route.request().method(), "POST");
+      assert.match(route.request().url(), /account-2\/activate$/);
+      await new Promise(resolve => { activation = resolve; });
+      if (fail) return route.fulfill({ status: 502, json: { error: "CARD_UNCONFIRMED" } });
+      state.accounts[1].card = { expiresAt: serverNow + 600000 };
+      await route.fulfill({ json: { card: state.accounts[1].card, serverNow } });
+    });
+    await page.route("**/api/cards/*/image?*", route => route.fulfill({ contentType: "image/svg+xml", body:
+      '<svg xmlns="http://www.w3.org/2000/svg" width="500" height="280" viewBox="0 0 500 280"><rect width="500" height="280" fill="white"/><text x="250" y="60" text-anchor="middle" font-family="sans-serif" font-size="32">123456</text>' +
+      Array.from({ length: 42 }, (_, i) => `<rect x="${70 + i * 8}" y="90" width="${i % 3 + 2}" height="110"/>`).join("") +
+      '<text x="250" y="250" text-anchor="middle" font-family="sans-serif" font-size="24">Código de teste</text></svg>' }));
+    const url = `http://127.0.0.1:${server.httpServer.address().port}`;
+    await page.goto(url);
+    const button = page.getByRole("button", { name: "Usar cartão de Conta 2", exact: true });
+    await button.click();
+    await page.getByText("A ativar cartão…", { exact: true }).waitFor();
+    const announcement = await page.locator(".account").nth(1).getByRole("status").elementHandle();
+    assert.equal(await page.getByRole("button", { name: "Usar cartão de Conta 1" }).isDisabled(), true);
+    assert.equal(await page.getByRole("timer").count(), 0);
+    while (!activation) await new Promise(resolve => setTimeout(resolve, 5));
+    activation();
+    const timer = page.getByRole("timer", { name: "Tempo restante do cartão de Conta 2" });
+    await timer.waitFor();
+    assert.match(await announcement.innerText(), /Conta 2: cartão ativo/);
+    assert.equal(await timer.innerText(), "10:00");
+    assert.equal(await page.getByRole("timer").count(), 1);
+    assert.match(await page.locator(".card-code").getAttribute("src"), /account-2\/image\?expiresAt=/);
+    serverNow += 5000;
+    await page.clock.fastForward(5000);
+    assert.equal(await timer.innerText(), "09:55");
+    await page.reload();
+    await timer.waitFor();
+    assert.equal(await timer.innerText(), "09:55");
+    const { mkdir } = await import("node:fs/promises");
+    await mkdir(".impeccable/review", { recursive: true });
+    await page.screenshot({ path: ".impeccable/review/mobile.png", fullPage: true });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.screenshot({ path: ".impeccable/review/desktop.png", fullPage: true });
+    await page.setViewportSize({ width: 320, height: 700 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    offline = true;
+    await page.evaluate(() => window.dispatchEvent(new Event("offline")));
+    await page.getByText(/Sem ligação ao Mac. A mostrar/).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Usar cartão de Conta 1" }).isDisabled(), true);
+    // A suspended page resumes from absolute expiry, rather than replaying 595 ticks.
+    serverNow += 600000;
+    await page.clock.fastForward(600000);
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await page.getByText("Conta 2: autorização terminada. Ative o cartão novamente para usar saldo.").waitFor();
+    assert.equal(await page.getByRole("timer").count(), 0);
+    assert.equal(await page.locator(".card-code").count(), 0);
+    offline = false;
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await page.getByText(/Última sincronização com o Mac/).waitFor();
+    fail = true; activation = undefined;
+    await button.click();
+    while (!activation) await new Promise(resolve => setTimeout(resolve, 5));
+    activation();
+    await page.getByRole("alert").filter({ hasText: "Não foi possível confirmar a ativação" }).waitFor();
+    assert.equal(await page.getByRole("timer").count(), 0);
+    assert.equal(await button.isEnabled(), true);
+  } finally { await browser?.close(); await server.close(); }
+});

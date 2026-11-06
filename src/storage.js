@@ -14,6 +14,7 @@ export function openStore(filename = path.join(dataDir, "coupons.sqlite")) {
     CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(id), coupon_key TEXT NOT NULL, kind TEXT NOT NULL, at TEXT NOT NULL, payload TEXT NOT NULL, previous TEXT);
     CREATE TABLE IF NOT EXISTS outbox (id TEXT PRIMARY KEY, message TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, sent_at TEXT, error TEXT);
     CREATE TABLE IF NOT EXISTS operation_lock (id INTEGER PRIMARY KEY CHECK(id=1), pid INTEGER NOT NULL, owner TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS card_sessions (account_id TEXT PRIMARY KEY REFERENCES accounts(id), expires_at INTEGER NOT NULL, image BLOB NOT NULL);
     CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);`);
   if (filename !== ":memory:") chmodSync(filename, 0o600);
   for (const a of accounts)
@@ -209,6 +210,7 @@ export function dashboardData(db, now = new Date()) {
     accounts: db.prepare("SELECT * FROM accounts").all().map((account) => ({
       ...account,
       source: accounts.find((configured) => configured.id === account.id)?.source || "web",
+      card: db.prepare("SELECT expires_at AS expiresAt FROM card_sessions WHERE account_id=?").get(account.id) || null,
     })),
     coupons,
     events: db

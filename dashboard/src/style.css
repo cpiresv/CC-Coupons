@@ -223,6 +223,29 @@ h1 span {
 .connected {
   color: #326146;
 }
+.card-control {
+  margin-top: 20px;
+}
+.card-control .primary {
+  padding: 12px 16px;
+}
+.card-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 700;
+}
+.card-status [role="timer"] {
+  font-size: 1.65rem;
+  font-variant-numeric: tabular-nums;
+}
+.card-code {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  background: #fff;
+}
 .attention {
   color: var(--amber);
 }

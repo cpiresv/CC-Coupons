@@ -6,6 +6,7 @@ import { root, port, tailscaleHost, selectAccounts } from "./config.js";
 import { openStore, dashboardData } from "./storage.js";
 import { runChecks } from "./monitor.js";
 import { isBusy } from "./lock.js";
+import { activateCard } from "./cards.js";
 
 function localHosts() {
   const addresses = Object.values(os.networkInterfaces())
@@ -21,7 +22,7 @@ function localHosts() {
   );
 }
 
-export function createApp(db, check = runChecks, privateHost = tailscaleHost) {
+export function createApp(db, check = runChecks, privateHost = tailscaleHost, activate = activateCard) {
   const app = express();
   let running = false;
   app.disable("x-powered-by");
@@ -52,6 +53,7 @@ export function createApp(db, check = runChecks, privateHost = tailscaleHost) {
   app.get("/api/state", (_req, res) =>
     res.json({
       ...dashboardData(db),
+      serverNow: Date.now(),
       running: running || isBusy(db),
       telegramConfigured: !!(
         process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID
@@ -59,6 +61,29 @@ export function createApp(db, check = runChecks, privateHost = tailscaleHost) {
       dailyTime: process.env.DAILY_CHECK_TIME || "09:00",
     }),
   );
+  app.post("/api/cards/:accountId/activate", async (req, res) => {
+    if (!req.is("application/json")) return res.status(415).json({ error: "JSON required" });
+    const { accountId } = req.params;
+    try {
+      if (accountId === "all" || selectAccounts(accountId)[0].source !== "android") throw Error();
+    } catch { return res.status(400).json({ error: "Invalid account" }); }
+    if (running || isBusy(db)) return res.status(409).json({ error: "BUSY" });
+    running = true;
+    try {
+      const card = await activate(db, accountId);
+      res.json({ card, serverNow: Date.now() });
+    } catch (error) {
+      res.status(error.code === "BUSY" ? 409 : 502).json({
+        error: ["BUSY", "AUTH_REQUIRED", "CARD_EXPIRED"].includes(error.code) ? error.code : "CARD_UNCONFIRMED",
+      });
+    } finally { running = false; }
+  });
+  app.get("/api/cards/:accountId/image", (req, res) => {
+    const card = db.prepare("SELECT image FROM card_sessions WHERE account_id=? AND expires_at=? AND expires_at>?")
+      .get(req.params.accountId, Number(req.query.expiresAt) || 0, Date.now());
+    if (!card) return res.status(404).json({ error: "Card authorization expired or unavailable" });
+    res.type("png").send(Buffer.from(card.image));
+  });
   app.post("/api/check", async (req, res) => {
     if (!req.is("application/json"))
       return res.status(415).json({ error: "JSON required" });

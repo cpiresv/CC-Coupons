@@ -1,6 +1,7 @@
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
-import { readState } from "./offline.js";
+import { readState, rememberCard } from "./offline.js";
+import CardControl from "./CardControl.jsx";
 
 const storeLogos = {
   Continente: "/stores/continente.png",
@@ -194,7 +195,8 @@ export default function App() {
   const [data, setData] = useState(null),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [activating, setActivating] = useState(null);
   const [tab, setTab] = useState("coupons"),
     [store, setStore] = useState("Continente"),
     [account, setAccount] = useState("all"),
@@ -209,7 +211,8 @@ export default function App() {
       clearTimeout(timer);
       loading = true;
       try {
-        setData(await readState(controller.signal));
+        const updated = await readState(controller.signal);
+        setData((current) => current?.serverNow > updated.serverNow && !updated.offline ? current : updated);
         setError("");
       } catch (e) {
         if (e.name !== "AbortError") setError(e.message);
@@ -234,6 +237,34 @@ export default function App() {
       document.removeEventListener("visibilitychange", visibility);
     };
   }, []);
+  async function useCard(accountId) {
+    setActivating(accountId);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch(`/api/cards/${accountId}/activate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const result = await response.json();
+      if (!response.ok) throw Error(result.error === "BUSY"
+        ? "Já existe uma operação em curso. Aguarde e tente novamente."
+        : result.error === "AUTH_REQUIRED"
+          ? "Inicie sessão nesta conta na app Cartão Continente e tente novamente."
+          : "Não foi possível confirmar a ativação do cartão. Consulte o estado da conta e tente novamente.");
+      rememberCard(accountId, result.card, result.serverNow);
+      setData((current) => ({
+        ...current, serverNow: result.serverNow, clockOffsetMs: result.serverNow - Date.now(),
+        offline: false, running: false,
+        accounts: current.accounts.map((a) => a.id === accountId ? { ...a, card: result.card } : a),
+      }));
+    } catch (e) {
+      setError(e instanceof TypeError
+        ? "Ligação interrompida. Volte a ligar ao Mac para confirmar se o cartão ficou ativo."
+        : e.message);
+    } finally { setActivating(null); }
+  }
   async function check() {
     setBusy(true);
     setError("");
@@ -304,7 +335,7 @@ export default function App() {
   const upcoming = countedCoupons.filter(
     (c) => c.status === "upcoming",
   ).length;
-  const running = busy || data?.running;
+  const running = busy || !!activating || data?.running;
   return (
     <>
       <header className="topbar">
@@ -332,7 +363,7 @@ export default function App() {
               disabled={!data || running || data.offline}
             >
               <RefreshCw size={20} strokeWidth={1.7} aria-hidden="true" />
-              {running ? "Verificação / sessão em curso" : "Verificar cupões"}
+              {activating ? "Ativação de cartão em curso" : running ? "Operação em curso" : "Verificar cupões"}
             </button>
             <small>
               {account === "all"
@@ -396,6 +427,11 @@ export default function App() {
                     Última verificação:{" "}
                     <strong>{instant(a.last_success)}</strong>
                   </p>
+                  {a.source === "android" && <CardControl
+                    account={a} offline={data.offline} running={running}
+                    activating={activating === a.id} clockOffsetMs={data.clockOffsetMs}
+                    onActivate={useCard}
+                  />}
                   {a.error && (
                     <p className="account-error">
                       {a.error === "MANUAL_VERIFICATION"

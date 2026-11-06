@@ -317,10 +317,13 @@ export async function openAndroid(accountId, { headed = false } = {}) {
         if (point) return adb(["shell", "input", "touchscreen", "tap", ...point.map(String)]);
         await android(["input", `--device=${serial}`, "tap", "--wait=10000", `id=/^${node["resource-id"].replaceAll("/", "\\/")}$/`]);
       },
+      async capture() {
+        const { stdout } = await execute(adbPath, ["-s", serial, "exec-out", "screencap", "-p"], { env, encoding: "buffer", timeout: 10000, maxBuffer: 8 * 1024 * 1024 });
+        return stdout;
+      },
       async screenshot() {
         try {
-          const { stdout } = await execute(adbPath, ["-s", serial, "exec-out", "screencap", "-p"], { env, encoding: "buffer", timeout: 10000, maxBuffer: 8 * 1024 * 1024 });
-          await writeFile(path.join(directory, `${accountId}-last-error.png`), stdout, { mode: 0o600 });
+          await writeFile(path.join(directory, `${accountId}-last-error.png`), await device.capture(), { mode: 0o600 });
         } catch {}
       },
     };

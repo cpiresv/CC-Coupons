@@ -3,6 +3,19 @@ import { couponStatus, expiring } from "../../src/dates.js";
 const storageKey = "cc-coupons-state-v1";
 const unavailable = "Não foi possível carregar os cupões. Ligue o Tailscale e confirme que o Mac está ligado.";
 
+export function rememberCard(accountId, card, serverNow) {
+  try {
+    const snapshot = JSON.parse(localStorage.getItem(storageKey));
+    if (!snapshot?.data?.accounts) return;
+    snapshot.data.accounts = snapshot.data.accounts.map((account) => account.id === accountId ? { ...account, card } : account);
+    snapshot.data.serverNow = serverNow;
+    snapshot.data.clockOffsetMs = serverNow - Date.now();
+    localStorage.setItem(storageKey, JSON.stringify(snapshot));
+  } catch {
+    // A live authorization remains usable when device storage is unavailable.
+  }
+}
+
 export async function readState(signal) {
   let response;
   try {
@@ -15,9 +28,14 @@ export async function readState(signal) {
   }
   if (response?.ok) {
     const data = await response.json();
+    data.clockOffsetMs = Number.isFinite(data.serverNow) ? data.serverNow - Date.now() : 0;
     const savedAt = new Date().toISOString();
     let saved = true;
     try {
+      let previous;
+      try { previous = JSON.parse(localStorage.getItem(storageKey)); } catch {}
+      if (previous?.data?.serverNow > data.serverNow)
+        return { ...previous.data, savedAt: previous.savedAt, saved: true, offline: false };
       localStorage.setItem(storageKey, JSON.stringify({ data, savedAt }));
     } catch {
       saved = false;

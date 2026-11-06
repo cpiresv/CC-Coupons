@@ -76,6 +76,18 @@ A SQLite process lock covers login, checks, scheduling, and notification dispatc
 
 ## Android integration
 
+### Use the card in store
+
+Select **Usar cartão** under the account you want to use. The Mac opens that account's official app and skips coupon selection. It reads the generated barcode and remaining authorization time. The dashboard displays the original code with a countdown and hides it when time expires. Activation does not make a purchase or select coupons.
+
+The authorization is stored locally in SQLite, so reloading the dashboard or restarting its server does not restart the timer. Repeated requests reuse an unexpired authorization. Activation shares the operation lock with checks and login. The Mac must be awake and reachable to activate a card; offline requests are never queued.
+
+The saved dashboard retains the confirmed expiry time while offline. Reloading it offline cannot retrieve the uncached barcode image.
+
+The official app does not expose the timer as accessible text. `src/read-card.swift` uses macOS Vision to read it and verify the barcode before saving the cropped card image. This requires the Swift toolchain from Xcode Command Line Tools. Missing or unreadable authorization data fails without displaying an active card. Card images use the private API, are not cached, and cannot be fetched after expiry.
+
+### Coupon collection
+
 All account checks read the official app's accessibility tree. The same manual check, dashboard button, daily schedule, history, comparison, and Telegram outbox process its coupons. The collector discovers store names from the full accessibility tree, including off-screen tabs. It reveals the store row vertically, then swipes horizontally to reach tabs on either side.
 
 It opens each store's list entries individually, including upcoming coupons, and waits for complete codes, discounts, conditions, and dates. It scrolls links clear of the app's fixed controls before opening them. Navigation attempts are bounded; unreachable tabs fail the check. The detail count must match the list count, and coupon identities must be unique before saving a snapshot. Incomplete or empty results preserve the previous data. It reuses the verified screen layout for visibility checks and reads a fresh layout after scrolling or incomplete positioning.

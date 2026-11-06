@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readState } from "../dashboard/src/offline.js";
+import { readState, rememberCard } from "../dashboard/src/offline.js";
 
 function mockStorage(t, storage) {
   const descriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
@@ -48,6 +48,9 @@ test("Offline snapshots retain their timestamp, expire coupons, and never report
   const controller = new AbortController();
   controller.abort();
   await assert.rejects(readState(controller.signal), /Offline/);
+  stored = "invalid JSON";
+  request.mock.mockImplementation(async () => Response.json(data));
+  assert.equal((await readState()).saved, true);
 });
 
 test("Unavailable device storage does not break live coupon access", async (t) => {
@@ -59,4 +62,22 @@ test("Unavailable device storage does not break live coupon access", async (t) =
   assert.equal((await readState()).saved, false);
   request.mock.mockImplementation(async () => { throw new TypeError("Offline"); });
   await assert.rejects(readState(), /Não foi possível/);
+});
+
+test("A confirmed card survives immediate offline reload without changing coupon freshness or accepting an older poll", async (t) => {
+  let stored;
+  mockStorage(t, { getItem: () => stored || null, setItem: (_key, value) => { stored = value; } });
+  const serverNow = Date.now();
+  const data = { serverNow, accounts: [{ id: "account-1", card: null }, { id: "account-2", card: null }], coupons: [], events: [], notifications: [] };
+  const request = t.mock.method(globalThis, "fetch", async () => Response.json(data));
+  const live = await readState();
+  const card = { expiresAt: serverNow + 600000 };
+  rememberCard("account-2", card, serverNow + 1000);
+  assert.deepEqual((await readState()).accounts[1].card, card);
+  request.mock.mockImplementation(async () => { throw TypeError("offline"); });
+  const offline = await readState();
+  assert.deepEqual(offline.accounts[1].card, card);
+  assert.equal(offline.accounts[0].card, null);
+  assert.equal(offline.savedAt, live.savedAt);
+  assert.equal(offline.serverNow, serverNow + 1000);
 });
