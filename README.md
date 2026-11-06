@@ -80,6 +80,8 @@ All account checks read the official app's accessibility tree. The same manual c
 
 It opens each store's list entries individually, including upcoming coupons, and waits for complete codes, discounts, conditions, and dates. It scrolls links clear of the app's fixed controls before opening them. Navigation attempts are bounded; unreachable tabs fail the check. The detail count must match the list count, and coupon identities must be unique before saving a snapshot. Incomplete or empty results preserve the previous data. It reuses the verified screen layout for visibility checks and reads a fresh layout after scrolling or incomplete positioning.
 
+The fixed Back button uses its verified screen position for a direct tap, avoiding another element lookup. Missing or invalid positions fall back to the Android reader's selector lookup. Scrolling links keep selector-based taps because their reported positions can lag behind the app's transitions. Every navigation still validates the resulting screen.
+
 Each device uses Android 16 Google Play ARM64, 3 GB RAM, and two CPU cores. Device names, ports, and storage are fixed per account:
 
 | Account | Device | Port | Storage |
@@ -107,7 +109,7 @@ Emulators started by the monitor use separate virtual networks (`-feature -WiFiP
 
 Cold starts use `-no-snapshot`, preserving installed apps and authentication data. The collector flushes Android storage before shutting down a device it started. Quick Boot previously restored a blank sign-in screen. Local commands disable wireless discovery with `ADB_MDNS=0` because the installed ADB discovery service crashed on this Mac. These settings do not change regular Chrome. Every account keeps separate Android storage.
 
-While waiting for a screen, temporary reader timeouts and missing layout roots retry within the readiness deadline without rebooting the device. The observed `CECE001` and `OEAE001` connection-error dialogs use the app's “Tentar Novamente” button at most twice within that deadline. Persistent failures still use the bounded account retry policy.
+While waiting for a screen, temporary reader timeouts and missing layout roots retry within the readiness deadline without rebooting the device. The observed `CECE001` and `OEAE001` connection-error dialogs and the app's offline error page share a limit of two “Tentar Novamente” attempts within that deadline. Persistent failures still use the bounded account retry policy.
 
 The app does not expose image URLs in its accessibility tree. The dashboard shows the discount text and coupon conditions without an invented image. Activation and usage remain unknown; the collector never selects, activates, archives, or redeems coupons.
 

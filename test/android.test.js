@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { androidTarget, collectAndroidCoupons, couponNavigationSwipe, couponTapRange, layoutNodes, parseAndroidCoupon, waitForAndroid } from "../src/android.js";
+import { androidTarget, collectAndroidCoupons, couponBackPoint, couponNavigationSwipe, couponTapRange, layoutNodes, parseAndroidCoupon, waitForAndroid } from "../src/android.js";
 import { openStore, saveSnapshot, dashboardData } from "../src/storage.js";
 import { CheckError } from "../src/extraction.js";
 
@@ -53,6 +53,15 @@ test("Observed connection-error dialogs retry in the app, with a fixed limit", a
   device.read = async () => taps ? screen : dialog;
   assert.deepEqual(await waitForAndroid(device, ns => ns === screen), screen);
   assert.equal(taps, 1);
+  const offlinePage = [node("error", "Ocorreu um erro!"), node("message", "Mesmo sem ligação pode associar o seu Cartão Continente à sua compra"), retry];
+  taps = 0;
+  device.read = async () => taps === 0 ? dialog : taps === 1 ? offlinePage : screen;
+  assert.deepEqual(await waitForAndroid(device, ns => ns === screen), screen);
+  assert.equal(taps, 2);
+  taps = 0;
+  device.read = async () => offlinePage;
+  await assert.rejects(waitForAndroid(device, () => false), { code: "NETWORK_ERROR" });
+  assert.equal(taps, 2);
 });
 
 test("Coupon navigation rejects clipped links but permits the last item above fixed controls", () => {
@@ -65,6 +74,21 @@ test("Coupon navigation rejects clipped links but permits the last item above fi
   assert.equal(safe(2045), false);
   for (const invalid of [undefined, NaN, 252, 2402])
     assert.throws(() => couponTapRange([0, 252, 1082, 2402], invalid), { code: "LAYOUT_CHANGED" });
+});
+
+test("Direct taps require the visible Back button with a valid position inside its bounds", () => {
+  const geometry = { bounds: "[0,144][118,262]", center: "[59,203]" };
+  const back = node("b3-Back", "Voltar página anterior", geometry);
+  assert.deepEqual(couponBackPoint(back), [59, 203]);
+  for (const extra of [
+    { hidden: true }, { "off-screen": true }, { bounds: undefined }, { center: undefined },
+    { center: "[0,203]" }, { center: "[119,203]" }, { center: "[59,263]" },
+    { center: "[-1,203]" }, { center: "[NaN,203]" }, { bounds: "[118,144][0,262]" },
+  ]) assert.equal(couponBackPoint({ ...back, ...extra }), null);
+  for (const id of ["l3-2_0-seeDetail", "l1-1_0-SelectInsigniaLink2", "b30-CouponsLink", "UseCardLink", "SelectCouponCheckbox", "Activate", "Archive", "android:id/button1"])
+    assert.equal(couponBackPoint({ ...back, "resource-id": id }), null);
+  assert.equal(couponBackPoint({ ...back, text: "Another action" }), null);
+  assert.equal(couponBackPoint(undefined), null);
 });
 
 const brands = ["Continente", "Galp", "Wells", "Pizza Hut", "Taco Bell", "KFC", "Pans & Company"];

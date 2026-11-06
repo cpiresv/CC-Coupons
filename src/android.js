@@ -81,6 +81,16 @@ export function couponTapRange([, top, , bottom], cardTop) {
   return [top + margin, cardTop - margin];
 }
 
+export function couponBackPoint(node) {
+  if (!node?.["resource-id"]?.endsWith("-Back") || label(node) !== "Voltar página anterior" || node.hidden || node["off-screen"])
+    return null;
+  const point = node.center?.match(/^\[(\d+),(\d+)\]$/)?.slice(1).map(Number);
+  const bounds = node.bounds?.match(/^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$/)?.slice(1).map(Number);
+  if (!point || !bounds || ![...point, ...bounds].every(Number.isSafeInteger)) return null;
+  const [x, y] = point, [left, top, right, bottom] = bounds;
+  return x > left && x < right && y > top && y < bottom ? point : null;
+}
+
 export function couponNavigationSwipe(nodes, id) {
   const node = nodes.find((n) => n["resource-id"] === id);
   const bounds = (n) => n?.bounds?.match(/^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$/)?.slice(1).map(Number);
@@ -189,7 +199,8 @@ export async function waitForAndroid(device, predicate, { timeout = 45000, manua
       await pause(500);
       continue;
     }
-    if (nodes.some((n) => /Code:\s*\((?:CECE001|OEAE001)\)/i.test(label(n)) && /connection has timed out|Não estamos a conseguir estabelecer ligação/i.test(label(n)))) {
+    const offlinePage = nodes.some((n) => label(n) === "Ocorreu um erro!") && nodes.some((n) => label(n).startsWith("Mesmo sem ligação"));
+    if (offlinePage || nodes.some((n) => /Code:\s*\((?:CECE001|OEAE001)\)/i.test(label(n)) && /connection has timed out|Não estamos a conseguir estabelecer ligação/i.test(label(n)))) {
       readError = new CheckError("NETWORK_ERROR");
       const retry = nodes.find((n) => label(n) === "Tentar Novamente" && !n.hidden && !n["off-screen"]);
       if (!retry || networkRetries++ >= 2) throw readError;
@@ -302,6 +313,8 @@ export async function openAndroid(accountId, { headed = false } = {}) {
           await adb(["shell", "input", "touchscreen", "swipe", ...swipe.map(String), "1000"]);
           nodes = undefined;
         }
+        const point = couponBackPoint(nodes?.find((n) => n["resource-id"] === id));
+        if (point) return adb(["shell", "input", "touchscreen", "tap", ...point.map(String)]);
         await android(["input", `--device=${serial}`, "tap", "--wait=10000", `id=/^${node["resource-id"].replaceAll("/", "\\/")}$/`]);
       },
       async screenshot() {
