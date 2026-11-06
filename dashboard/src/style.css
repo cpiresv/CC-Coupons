@@ -267,6 +267,48 @@ h1 {
   margin-top: 8px;
   color: var(--ink);
 }
+.store-workspace[data-store="Galp"] {
+  --brand: #cd4600;
+  --brand-hover: #9b3600;
+  --brand-soft: #fff0e7;
+  --line: #edd8ca;
+}
+.store-workspace[data-store="Wells"] {
+  --brand: #00778f;
+  --brand-hover: #005e72;
+  --brand-soft: #e9f8fa;
+  --line: #cde4e8;
+}
+.store-workspace[data-store="Pizza Hut"] {
+  --brand: #e31c24;
+  --brand-hover: #b4151c;
+  --brand-soft: #fff1f1;
+  --line: #efd8d8;
+}
+.store-workspace:is([data-store="Taco Bell"], [data-store="TacoBell"]) {
+  --brand: #5b2994;
+  --brand-hover: #45206f;
+  --brand-soft: #f6effc;
+  --line: #e5d7ef;
+}
+.store-workspace[data-store="KFC"] {
+  --brand: #e31e2f;
+  --brand-hover: #b81525;
+  --brand-soft: #fff0f3;
+  --line: #efd8de;
+}
+.store-workspace:is([data-store="Pans & Company"], [data-store="Pans&Company"]) {
+  --brand: #896300;
+  --brand-hover: #6b4e00;
+  --brand-soft: #fff8cf;
+  --line: #e8dfb8;
+}
+.store-workspace :focus-visible {
+  outline-color: var(--brand-hover);
+}
+.store-workspace ::selection {
+  background: var(--brand-soft);
+}
 .workspace-heading {
   margin-top: 36px;
   display: flex;
@@ -290,8 +332,8 @@ h1 {
   color: var(--ink);
 }
 .tab.selected {
-  color: var(--ink);
-  border-bottom-color: var(--ink);
+  color: var(--brand-hover);
+  border-bottom-color: var(--brand);
   font-weight: 700;
 }
 .workspace-heading p {
@@ -309,6 +351,7 @@ h1 {
   padding: 24px 8px 12px;
   margin-inline: -8px;
   scrollbar-width: thin;
+  scrollbar-color: var(--brand) var(--brand-soft);
 }
 .store-selector + .workspace-heading {
   margin-top: 12px;
@@ -348,7 +391,7 @@ h1 {
   border-color: var(--muted);
 }
 .store-button[aria-pressed="true"] {
-  color: var(--ink);
+  color: var(--brand-hover);
 }
 .store-button[aria-pressed="true"] .store-circle {
   border: 3px solid var(--brand);
@@ -362,7 +405,7 @@ h1 {
   height: 12px;
   border: 2px solid #faf8f8;
   border-radius: 50%;
-  background: #893b23;
+  background: var(--brand-hover);
 }
 .filters {
   display: flex;
@@ -473,6 +516,14 @@ input[type="date"] {
   color: var(--muted);
   text-align: center;
 }
+.discount strong .discount-unit,
+.compare-value strong .discount-unit {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: normal;
+  color: inherit;
+}
 .offer-labels {
   display: flex;
   flex-wrap: wrap;
@@ -512,7 +563,7 @@ input[type="date"] {
   color: #fff;
   background: var(--brand);
 }
-.upcoming .badge.featured {
+.upcoming :is(.badge.new, .badge.featured) {
   color: var(--ink);
   background: #dfe2df;
 }
@@ -636,7 +687,7 @@ dd {
 }
 .history time {
   font-size: 0.8rem;
-  color: var(--muted);
+  color: var(--brand-hover);
 }
 .history article p {
   font-size: 0.8rem;
@@ -834,7 +885,7 @@ footer > div {
   }
   @keyframes arrive {
     from {
-      background: #fff0f1;
+      background: var(--brand-soft);
     }
     to {
       background: transparent;

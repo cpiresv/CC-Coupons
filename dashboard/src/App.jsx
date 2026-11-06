@@ -31,6 +31,15 @@ const kinds = {
   removed: "Retirado",
   expired: "Expirado",
 };
+function CouponDiscount({ coupon, fallback = "Ver imagem" }) {
+  const amount = coupon.discount?.match(/^(\d+(?:[,.]\d+)?)\s*€$/);
+  const rate = coupon.brand === "Galp" &&
+    `${coupon.title} ${coupon.description}`.match(/(\d+(?:[,.]\d+)?)\s*(?:c[eê]nt(?:imos)?\.?|cts?)\s*\/\s*(?:lt|litros?|l)\b/i);
+  if (!amount || !rate) return coupon.discount || fallback;
+  const cents = Number(amount[1].replace(",", ".")) * 100;
+  if (Math.abs(cents - Number(rate[1].replace(",", "."))) > 0.00001) return coupon.discount;
+  return <>{new Intl.NumberFormat("pt-PT").format(cents)}<span className="discount-unit"> cênt./L</span></>;
+}
 function isFeatured(coupon) {
   if (!coupon.present || !["available", "upcoming"].includes(coupon.status) ||
     !/^5(?:[,.]00)?\s*(?:€|EUR)$/i.test(coupon.discount?.trim() || "")) return false;
@@ -181,7 +190,7 @@ function Comparison({ coupons, accounts }) {
                 <span className="mobile-account">{a.name}</span>
                 {g.accounts[a.id]?.map((c) => (
                   <span className={c.status} key={c.key}>
-                    <strong>{c.discount || "Ver imagem"}</strong>
+                    <strong><CouponDiscount coupon={c} /></strong>
                     <small>
                       {c.status === "upcoming" ? "Em breve" : "Disponível"}
                     </small>
@@ -497,6 +506,10 @@ export default function App() {
                 </div>
               ))}
             </section>
+          </>
+        )}
+        {data && (
+          <div className="store-workspace" data-store={selectedStore}>
             <StoreSelector
               stores={stores}
               coupons={coupons}
@@ -601,7 +614,7 @@ export default function App() {
                       key={c.accountId + c.key}
                     >
                       <div className="discount">
-                        <strong>{c.discount || "Ver imagem"}</strong>
+                        <strong><CouponDiscount coupon={c} /></strong>
                         <span>
                           {c.discount ? "em cartão" : "Valor não identificado"}
                         </span>
@@ -673,7 +686,7 @@ export default function App() {
                       </h3>
                       <p>
                         {e.payload.brand} ·{" "}
-                        {e.payload.discount || "Desconto na imagem"} · até{" "}
+                        <CouponDiscount coupon={e.payload} fallback="Desconto na imagem" /> · até{" "}
                         {date(e.payload.endDate)}
                       </p>
                       {e.previous && (
@@ -682,14 +695,14 @@ export default function App() {
                           <dl>
                             <dt>Antes</dt>
                             <dd>
-                              {e.previous.discount || "Ver imagem"} ·{" "}
+                              <CouponDiscount coupon={e.previous} /> ·{" "}
                               {e.previous.description} ·{" "}
                               {date(e.previous.startDate)} —{" "}
                               {date(e.previous.endDate)}
                             </dd>
                             <dt>Depois</dt>
                             <dd>
-                              {e.payload.discount || "Ver imagem"} ·{" "}
+                              <CouponDiscount coupon={e.payload} /> ·{" "}
                               {e.payload.description} ·{" "}
                               {date(e.payload.startDate)} —{" "}
                               {date(e.payload.endDate)}
@@ -730,7 +743,7 @@ export default function App() {
                 </p>
               )}
             </footer>
-          </>
+          </div>
         )}
       </main>
     </>

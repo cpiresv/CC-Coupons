@@ -230,7 +230,7 @@ At widths of 760px or less:
 
 The interface uses no box shadows. White working surfaces, pale red grouping, horizontal rules, and type hierarchy establish depth. Account summaries belong to one shared strip; offer rows remain flat, contiguous records.
 
-Buttons transition background color over 120ms with `ease-out`. Comparison rows briefly fade their pale red background over 160ms. Both effects run only when `prefers-reduced-motion: no-preference` matches.
+Buttons transition background color over 120ms with `ease-out`. Comparison rows briefly fade their pale store accent over 160ms. Both effects run only when `prefers-reduced-motion: no-preference` matches.
 
 ## Shapes
 
@@ -256,11 +256,13 @@ The three views are **Cupões**, **Comparar contas**, and **Histórico**. Naviga
 
 ### Store Selector
 
+The selected store sets the accent palette from the selector through the coupon views. Continente uses red, Galp orange, Wells teal, Pizza Hut and KFC their own reds, Taco Bell purple, and Pans & Company gold. Unknown stores use the default Continente palette. The header, check action, and account summaries use Continente red.
+
 Store buttons pair an official logo inside a circle with a bold, muted store name underneath. Continente, Galp, Wells, Pizza Hut, Taco Bell, KFC, and Pans & Company use local logo assets. TacoBell and Pans&Company labels use the same respective assets. Unknown brands use up to two initials. Only brands represented in coupon records appear; the selector is absent when no brands exist. Continente is selected initially when present, otherwise the first available brand is used. Selection remains when that brand is still available.
 
-The circle uses the `store-circle` size, a white surface, and a 2px soft-rule border. Each button has an 84px minimum width and a 10px gap between its circle and label. Logos fit within 60% of the circle width and 48% of its height. The selected circle has a 3px Continente-red border and pale red background; its label uses charcoal. Hover changes the unselected border to muted charcoal. Buttons retain the shared focus outline, and `aria-pressed` exposes selection.
+The circle uses the `store-circle` size, a white surface, and a 2px soft-rule border. Each button has an 84px minimum width and a 10px gap between its circle and label. Logos fit within 60% of the circle width and 48% of its height. The selected circle has a 3px border, a pale fill, and a label in the selected store’s palette. Hover changes the unselected border to muted charcoal. Buttons retain the shared focus outline, and `aria-pressed` exposes selection.
 
-A rust dot (12px) sits at the upper-right of the circle with a 2px page-background border. It marks new, present coupons that are available or upcoming in the relevant account scope. The accessible button name adds **novos cupões** when the dot appears. Store labels remain visible below every logo.
+A dot in the selected store’s accent color (12px) sits at the upper-right of the circle with a 2px page-background border. It marks new, present coupons that are available or upcoming in the relevant account scope. The accessible button name adds **novos cupões** when the dot appears. Store labels remain visible below every logo.
 
 The selected store scopes coupons, comparison, history, and available/upcoming counts. Coupon and history views also respect the account filter. Comparison includes all accounts, including its counts and new-coupon dots. The selector uses the compact `store-circle-mobile` size at the existing mobile breakpoint.
 
@@ -274,17 +276,19 @@ Three summaries share a pale red container with dividers. Each shows the account
 
 ### Ruled Offer Row
 
-Available coupons show a red discount on a pale red tile. The discount leads, followed by brand, account, badges, offer title, and the conditions disclosure. A separate validity block includes the written status, end date, and start date. Approaching expiry changes the end-date emphasis to amber.
+Available coupons use the selected store’s dark accent on a pale tile. The discount leads, followed by brand, account, badges, offer title, and the conditions disclosure. A separate validity block includes the written status, end date, and start date. Approaching expiry changes the end-date emphasis to amber.
 
 Upcoming offers use a light gray surface, neutral text, grayscale images, and an **Em breve** badge. Their validity block leads with **Disponível a partir de** and the start date, followed by the end date. Conditions remain accessible. Upcoming account comparison values also use neutral text and retain their written state.
 
-The €5 offers for purchases over €20 at Continente or over €5 at Wells carry a **Destaque** badge. Available versions lead each store's list and comparison, with a pale red surface and a Continente-red discount block in the coupon list. Upcoming versions retain the gray treatment and normal expiry order. Removed, used, and expired versions are not featured; account and date filters still apply.
+The €5 offers for purchases over €20 at Continente or over €5 at Wells carry a **Destaque** badge. Available versions lead each store's list and comparison, with a pale surface and a solid store accent on the discount block in the coupon list. Upcoming versions retain the gray treatment and normal expiry order. Removed, used, and expired versions are not featured; account and date filters still apply.
 
 Unknown discounts render **Ver imagem** with **Valor não identificado**. The disclosure contains conditions, code, known purchase information, first detection, and the original offer image when available. Android offers use the app’s accessible discount text and omit the image. This image is evidence content, not decoration. Details use a side-by-side layout on desktop and stack on mobile.
 
+Galp fuel discounts explicitly described per litre display cents with **cênt./L** below the value in the list and comparison. History uses the same unit inline. Fixed Galp discounts remain in euros; stored source values and conditions are preserved.
+
 ### Account Comparison
 
-Matching offers share one identity and date range, then display each account's values. Available values use red; upcoming values remain gray. Comparison rows have 24px padding; the desktop header uses 12px vertical and 24px horizontal padding so its columns align. Mobile rows use 20px vertical and 16px horizontal padding. The desktop heading names each account column. Mobile labels repeat the account name above each value. **Sem esta oferta** and **Por verificar** distinguish known absence from missing verification. The account filter controls the next manual check; comparison continues to show all accounts.
+Matching offers share one identity and date range, then display each account's values. Available values use the selected store’s accent; upcoming values remain gray. Comparison rows have 24px padding; the desktop header uses 12px vertical and 24px horizontal padding so its columns align. Mobile rows use 20px vertical and 16px horizontal padding. The desktop heading names each account column. Mobile labels repeat the account name above each value. **Sem esta oferta** and **Por verificar** distinguish known absence from missing verification. The account filter controls the next manual check; comparison continues to show all accounts.
 
 ### Filtered History
 

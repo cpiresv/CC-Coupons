@@ -35,7 +35,7 @@ test("Store selection keeps coupons, comparison, history and account filters ali
       coupons: [
         offer("Continente", "account-1", "c1"),
         offer("Continente", "account-2", "c2", { status: "upcoming", startDate: "2026-11-09", isNew: false }),
-        offer("Galp", "account-3", "g1", { expiring: true, imageUrl: null }),
+        offer("Galp", "account-3", "g1", { discount: "0,1 €", description: "DESCONTO GALP/CONTINENTE 10 CENT/LT EM CARTAO CONTINENTE", expiring: true, imageUrl: null }),
         offer("Wells", "account-1", "w1", { status: "expired" }),
         offer("Pizza Hut", "account-1", "p1", { status: "upcoming", startDate: "2026-11-09", isNew: false }),
         offer("Taco Bell", "account-2", "t1"),
@@ -77,6 +77,10 @@ test("Store selection keeps coupons, comparison, history and account filters ali
     assert.equal(await page.locator(".compare-value .upcoming").innerText(), "5 €\nEm breve");
     await page.getByRole("button", { name: "Cupões", exact: true }).click();
     const stores = page.getByRole("group", { name: "Filtrar por loja" });
+    const headerAndAccounts = () => page.evaluate(() =>
+      [".topbar", ".accounts", ".account .primary", ".page-heading .primary"]
+        .map(selector => getComputedStyle(document.querySelector(selector)).backgroundColor));
+    const initialColors = await headerAndAccounts();
     assert.deepEqual(await stores.locator("button > span:last-child").allTextContents(),
       ["Continente", "Galp", "Wells", "Pizza Hut", "Taco Bell", "KFC", "Pans & Company"]);
     assert.equal(await stores.getByRole("button", { name: /^Continente/ }).getAttribute("aria-pressed"), "true");
@@ -97,6 +101,11 @@ test("Store selection keeps coupons, comparison, history and account filters ali
     await page.keyboard.press("Enter");
     await page.getByRole("heading", { name: "Galp · 1 cupão", exact: true }).waitFor();
     assert.deepEqual(await page.locator(".coupon .brand").allTextContents(), ["Galp"]);
+    assert.equal(await stores.locator('[aria-pressed="true"] .store-circle')
+      .evaluate(el => getComputedStyle(el).borderTopColor), "rgb(205, 70, 0)");
+    assert.equal(await page.locator(".coupon .discount").evaluate(el => getComputedStyle(el).backgroundColor), "rgb(255, 240, 231)");
+    assert.deepEqual(await headerAndAccounts(), initialColors);
+    assert.equal((await page.locator(".coupon .discount strong").textContent()).trim(), "10 cênt./L");
     await page.locator(".coupon summary").click();
     assert.equal(await page.locator(".coupon summary").innerText(), "Condições");
     assert.equal(await page.locator(".coupon .details-body img").count(), 0);
@@ -109,13 +118,14 @@ test("Store selection keeps coupons, comparison, history and account filters ali
     await page.locator(".comparison .brand").waitFor();
     assert.deepEqual(await page.locator(".comparison .brand").allTextContents(), ["Galp"]);
     assert.equal(await page.getByText("Sem esta oferta", { exact: true }).count(), 2);
-    assert.equal(await page.locator(".compare-value").filter({hasText: "Conta 3"}).getByText("5 €").count(), 1);
+    assert.equal((await page.locator(".compare-value").filter({hasText: "Conta 3"}).locator("strong").textContent()).trim(), "10 cênt./L");
     await page.getByRole("button", { name: "Histórico", exact: true }).click();
     await page.getByRole("heading", { name: "Últimas alterações · Galp" }).waitFor();
     assert.equal(await page.locator(".history article").count(), 0);
     await page.getByRole("combobox", { name: /^Conta/ }).selectOption("all");
     await page.locator(".history article").waitFor();
-    assert.deepEqual(await page.locator(".history article h3").allTextContents(), ["galp condições de teste"]);
+    assert.deepEqual(await page.locator(".history article h3").allTextContents(), ["desconto galp/continente 10 cent/lt em cartao continente"]);
+    assert.match(await page.locator(".history article p").textContent(), /10 cênt\.\/L/);
 
     await page.getByRole("button", { name: "Cupões", exact: true }).click();
     await stores.getByRole("button", { name: "Wells", exact: true }).click();
@@ -164,10 +174,24 @@ test("Store selection keeps coupons, comparison, history and account filters ali
     await page.getByRole("button", { name: "Cupões", exact: true }).click();
     await stores.getByRole("button", { name: /^Wells/ }).click();
     assert.equal(await page.locator(".coupon.featured").count(), 1);
+    assert.equal(await page.locator(".coupon.featured .discount").evaluate(el => getComputedStyle(el).backgroundColor), "rgb(0, 119, 143)");
+    assert.deepEqual(await headerAndAccounts(), initialColors);
     assert.equal(await page.locator(".coupon.featured h3").textContent(), wellsTitle.toLocaleLowerCase("pt-PT"));
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await stores.getByRole("button", { name: /^Pizza Hut/ }).click();
     assert.equal(await page.locator(".coupon.featured").count(), 0);
+
+    state = { ...state, coupons: [
+      offer("Galp", "account-1", "rate-8", { title: "A · Combustível 8 CENT/LT", discount: "0,08 €" }),
+      offer("Galp", "account-1", "rate-10", { title: "B · Combustível 10CT/LT EM EVOLOGIC", discount: "0,10 €" }),
+      offer("Galp", "account-1", "fixed", { title: "C · NUM ABASTECIMENTO SUPERIOR A 20L EM EVOLOGIC", discount: "2 €" }),
+      offer("Galp", "account-1", "unknown", { title: "D · Combustível 10 CENT/LT", discount: null }),
+      offer("Galp", "account-1", "fixed-with-rate", { title: "E · Bónus adicional ao desconto de 10CT/LT", discount: "2 €" }),
+    ] };
+    await page.reload();
+    await page.getByRole("heading", { name: "Galp · 5 cupões", exact: true }).waitFor();
+    assert.deepEqual((await page.locator(".coupon .discount strong").allTextContents()).map(text => text.trim()), ["8 cênt./L", "10 cênt./L", "2 €", "Ver imagem", "2 €"]);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 
     state = { ...state, coupons: [offer("TacoBell", "account-1", "t2"), offer("Pans&Company", "account-2", "pc2")] };
     await page.reload();
