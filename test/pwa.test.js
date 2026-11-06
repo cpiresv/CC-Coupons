@@ -14,6 +14,7 @@ test("Built PWA survives an offline browser restart and reconnects without repla
     await build({ build: { outDir: path.join(directory, "dist") }, logLevel: "silent" });
     let checks = 0;
     let unavailable = false;
+    let manualCheck = null;
     const app = express();
     app.use("/api/state", (_req, res, next) => unavailable ? res.sendStatus(503) : next());
     app.get("/api/state", (_req, res) => res.json({
@@ -22,9 +23,13 @@ test("Built PWA survives an offline browser restart and reconnects without repla
         title: "Oferta de teste", description: "Condições de teste", discount: "5 €",
         startDate: "2020-01-01", endDate: "2099-12-31", firstSeen: "2020-01-01T12:00:00Z",
         present: true, status: "available", imageUrl: null }],
-      events: [], notifications: [], running: false, dailyTime: "09:00", telegramConfigured: false,
+      events: [], notifications: [], running: manualCheck?.status === "running", manualCheck, dailyTime: "09:00", telegramConfigured: false,
     }));
-    app.post("/api/check", (_req, res) => { checks++; unavailable = true; res.json({ results: [] }); });
+    app.post("/api/check", (_req, res) => {
+      checks++;
+      manualCheck = { id: "test", status: "running", startedAt: new Date().toISOString() };
+      res.status(202).json({ check: manualCheck, serverNow: Date.now() });
+    });
     app.use(express.static(path.join(directory, "dist")));
     server = app.listen(0, "127.0.0.1");
     await new Promise((resolve) => server.once("listening", resolve));
@@ -89,8 +94,18 @@ test("Built PWA survives an offline browser restart and reconnects without repla
     assert.equal(await page.getByRole("button", { name: "Verificar cupões" }).isEnabled(), true);
     assert.equal(checks, 0);
     await page.getByRole("button", { name: "Verificar cupões" }).click();
-    await page.getByText("Verificação concluída no Mac. Volte a ligar para receber os cupões atualizados.").waitFor();
+    await page.getByText(/A verificar cupões no Mac/).waitFor();
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem("cc-coupons-state-v1"))?.data?.manualCheck?.id === "test");
+    unavailable = true;
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await page.getByText("Volte a ligar ao Mac para confirmar o estado da última verificação.").waitFor();
     assert.equal(await page.getByRole("button", { name: "Verificar cupões" }).isDisabled(), true);
+    assert.equal(checks, 1);
+    manualCheck = { ...manualCheck, status: "completed", results: [], completedAt: new Date().toISOString() };
+    unavailable = false;
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await page.getByText(/Verificação concluída em/).waitFor();
     assert.equal(checks, 1);
     assert.deepEqual(errors, []);
   } finally {

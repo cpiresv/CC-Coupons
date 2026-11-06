@@ -196,7 +196,6 @@ function Comparison({ coupons, accounts }) {
 export default function App() {
   const [data, setData] = useState(null),
     [error, setError] = useState(""),
-    [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [activating, setActivating] = useState(null);
   const [tab, setTab] = useState("coupons"),
@@ -242,7 +241,6 @@ export default function App() {
   async function useCard(accountId) {
     setActivating(accountId);
     setError("");
-    setNotice("");
     try {
       const response = await fetch(`/api/cards/${accountId}/activate`, {
         method: "POST",
@@ -270,12 +268,12 @@ export default function App() {
   async function check() {
     setBusy(true);
     setError("");
-    setNotice("");
     try {
       const r = await fetch("/api/check", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Prefer: "respond-async" },
         body: JSON.stringify({ accountId: account }),
+        signal: AbortSignal.timeout(10000),
       });
       const result = await r.json();
       if (!r.ok)
@@ -284,21 +282,33 @@ export default function App() {
             ? "Já existe uma verificação ou início de sessão em curso."
             : "Não foi possível iniciar a verificação. Tente novamente.",
         );
-      const updated = await readState();
-      setData(updated);
-      if (result.results.some((r) => !r.ok))
-        setError(
-          "Uma conta não pôde ser verificada. Os últimos cupões confirmados foram preservados. Consulte o estado da conta.",
-        );
-      else setNotice(updated.offline
-        ? "Verificação concluída no Mac. Volte a ligar para receber os cupões atualizados."
-        : "Verificação concluída. Os cupões estão atualizados.");
+      setData((current) => current?.serverNow > result.serverNow ? current
+        : { ...current, running: true, manualCheck: result.check, serverNow: result.serverNow });
     } catch (e) {
-      setError(e.message);
+      setError(["TypeError", "TimeoutError", "AbortError", "SyntaxError"].includes(e.name)
+        ? "Ligação interrompida. Volte a ligar ao Mac para confirmar o estado da verificação."
+        : e.message);
     } finally {
       setBusy(false);
     }
   }
+  const manualCheck = data?.manualCheck;
+  const checkFailed = !data?.offline && !busy && manualCheck &&
+    (manualCheck.status === "failed" || manualCheck.results?.some((result) => !result.ok));
+  const errorMessage = error || (checkFailed
+    ? manualCheck.error === "CHECK_INTERRUPTED"
+      ? "A verificação foi interrompida no Mac. Os últimos cupões confirmados foram preservados. Tente novamente."
+      : manualCheck.status === "failed"
+        ? "Não foi possível concluir a verificação. Os últimos cupões confirmados foram preservados. Tente novamente."
+        : "Uma conta não pôde ser verificada. Os últimos cupões confirmados foram preservados. Consulte o estado da conta."
+    : "");
+  const notice = !busy && !activating && !errorMessage && manualCheck
+    ? data.offline
+      ? "Volte a ligar ao Mac para confirmar o estado da última verificação."
+      : manualCheck.status === "running"
+        ? "A verificar cupões no Mac. Pode fechar esta página e voltar mais tarde."
+        : `Verificação concluída em ${instant(manualCheck.completedAt)}. Os cupões estão atualizados.`
+    : "";
   const accountName = (id) =>
     data?.accounts.find((a) => a.id === id)?.name || id;
   const coupons = data?.coupons || [];
@@ -375,9 +385,9 @@ export default function App() {
             </small>
           </div>
         </div>
-        {error && (
+        {errorMessage && (
           <div role="alert" className="message error">
-            {error}
+            {errorMessage}
             {!data && (
               <button onClick={() => location.reload()}>
                 Tentar novamente

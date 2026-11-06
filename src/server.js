@@ -2,6 +2,7 @@ import express from "express";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { randomUUID } from "node:crypto";
 import { root, port, tailscaleHost, selectAccounts } from "./config.js";
 import { openStore, dashboardData } from "./storage.js";
 import { runChecks } from "./monitor.js";
@@ -25,6 +26,15 @@ function localHosts() {
 export function createApp(db, check = runChecks, privateHost = tailscaleHost, activate = activateCard) {
   const app = express();
   let running = false;
+  let pendingCheck;
+  let manualCheck = JSON.parse(db.prepare("SELECT value FROM metadata WHERE key='manual_check'").get()?.value || "null");
+  const saveCheck = () => db.prepare("INSERT INTO metadata(key,value) VALUES('manual_check',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value")
+    .run(JSON.stringify(manualCheck));
+  if (manualCheck?.status === "running") {
+    manualCheck = { ...manualCheck, status: "failed", error: "CHECK_INTERRUPTED", completedAt: new Date().toISOString() };
+    saveCheck();
+  }
+  app.locals.finishCheck = () => pendingCheck;
   app.disable("x-powered-by");
   app.use((req, res, next) => {
     const privateHttps = privateHost && req.headers.host === privateHost &&
@@ -55,6 +65,7 @@ export function createApp(db, check = runChecks, privateHost = tailscaleHost, ac
       ...dashboardData(db),
       serverNow: Date.now(),
       running: running || isBusy(db),
+      manualCheck,
       telegramConfigured: !!(
         process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID
       ),
@@ -93,25 +104,31 @@ export function createApp(db, check = runChecks, privateHost = tailscaleHost, ac
     } catch {
       return res.status(400).json({ error: "Invalid account" });
     }
-    if (running)
+    if (running || isBusy(db))
       return res
         .status(409)
         .json({ error: "A check or login is already running" });
+    manualCheck = { id: randomUUID(), accountId: id, status: "running", startedAt: new Date().toISOString() };
+    saveCheck();
     running = true;
-    try {
-      const results = await check(db, id);
-      res.json({ results });
-    } catch (e) {
-      res
-        .status(e.code === "BUSY" ? 409 : 500)
-        .json({
-          error:
-            e.code === "BUSY"
-              ? "A check or login is already running"
-              : "Check failed. Previous data was retained.",
-        });
-    } finally {
-      running = false;
+    const asynchronous = req.get("Prefer") === "respond-async";
+    if (asynchronous) res.status(202).json({ check: manualCheck, serverNow: Date.now() });
+    pendingCheck = (async () => {
+      try {
+        const results = await check(db, id);
+        manualCheck = { ...manualCheck, status: "completed", results, completedAt: new Date().toISOString() };
+      } catch {
+        manualCheck = { ...manualCheck, status: "failed", error: "CHECK_FAILED", completedAt: new Date().toISOString() };
+      } finally {
+        running = false;
+        saveCheck();
+      }
+    })().catch(() => console.error("Could not persist manual check status"));
+    // Installed older dashboard versions still expect the completed response.
+    if (!asynchronous) {
+      await pendingCheck;
+      if (manualCheck.status === "failed") res.status(500).json({ error: "Check failed. Previous data was retained." });
+      else res.json({ results: manualCheck.results });
     }
   });
   app.use(express.static(path.join(root, "dist"), { index: "index.html" }));
@@ -122,7 +139,8 @@ export function createApp(db, check = runChecks, privateHost = tailscaleHost, ac
 }
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const db = openStore();
-  const server = createApp(db).listen(port, tailscaleHost ? "127.0.0.1" : "0.0.0.0", () => {
+  const app = createApp(db);
+  const server = app.listen(port, tailscaleHost ? "127.0.0.1" : "0.0.0.0", () => {
     if (tailscaleHost) console.log(`Dashboard: https://${tailscaleHost}`);
     else for (const host of localHosts()) console.log(`Dashboard: http://${host}`);
   });
@@ -133,7 +151,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   });
   for (const signal of ["SIGINT", "SIGTERM"])
     process.on(signal, () =>
-      server.close(() => {
+      server.close(async () => {
+        await app.locals.finishCheck();
         db.close();
         process.exit();
       }),
