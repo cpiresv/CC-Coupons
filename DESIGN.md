@@ -2,31 +2,30 @@
 name: CC Cupões
 description: A calm Portuguese shopping planner for comparing local coupon records across three accounts.
 colors:
-  green: "#173e36"
-  green-hover: "#28594d"
-  ink: "#203e36"
-  muted: "#5a6d65"
-  background: "#f7f9f6"
+  brand: "#e10916"
+  brand-hover: "#bd0712"
+  ink: "#272326"
+  muted: "#6d6164"
+  background: "#faf8f8"
   surface: "#ffffff"
-  sage: "#eaf1e9"
-  line: "#d9e2db"
-  account-divider: "#c8d7ca"
-  field-border: "#bdcbbf"
-  heading-accent: "#557d65"
-  inverse-muted: "#d0e4d5"
+  brand-soft: "#fff0f1"
+  line: "#e6dadd"
+  account-divider: "#e5d1d5"
+  field-border: "#cdbfc2"
+  inverse-muted: "#fff5f5"
   connected: "#326146"
   positive: "#285a3f"
-  new-background: "#e8f2e7"
+  new-background: "#fff0f1"
   success-background: "#e7f0e6"
   amber: "#795004"
   amber-bg: "#fff4d4"
   error: "#893b23"
   error-background: "#fff0ea"
-  focus: "#b75b18"
+  focus: "#860711"
 typography:
   display:
     fontFamily: "Manrope, sans-serif"
-    fontSize: "clamp(2.5rem, 4vw, 3.6rem)"
+    fontSize: "clamp(2rem, 3vw, 2.75rem)"
     fontWeight: 700
     lineHeight: 1.12
     letterSpacing: "-0.035em"
@@ -73,12 +72,12 @@ spacing:
   "48": "48px"
 components:
   button-primary:
-    backgroundColor: "{colors.green}"
+    backgroundColor: "{colors.brand}"
     textColor: "{colors.surface}"
     rounded: "{rounded.control}"
     padding: "14px 20px"
   button-primary-hover:
-    backgroundColor: "{colors.green-hover}"
+    backgroundColor: "{colors.brand-hover}"
   button-text:
     backgroundColor: "transparent"
     textColor: "{colors.muted}"
@@ -103,13 +102,13 @@ components:
     width: "76px"
     height: "76px"
   store-circle-selected:
-    backgroundColor: "{colors.sage}"
+    backgroundColor: "{colors.brand-soft}"
   store-circle-mobile:
     width: "64px"
     height: "64px"
   badge-new:
     backgroundColor: "{colors.new-background}"
-    textColor: "{colors.positive}"
+    textColor: "{colors.brand-hover}"
     rounded: "{rounded.badge}"
     padding: "2px 8px"
   badge-urgent:
@@ -118,7 +117,7 @@ components:
     rounded: "{rounded.badge}"
     padding: "2px 8px"
   account-strip:
-    backgroundColor: "{colors.sage}"
+    backgroundColor: "{colors.brand-soft}"
     textColor: "{colors.ink}"
     rounded: "{rounded.account-strip}"
   offer-row:
@@ -126,9 +125,9 @@ components:
     textColor: "{colors.ink}"
     padding: "26px 20px 26px 0"
   comparison-heading:
-    backgroundColor: "{colors.sage}"
+    backgroundColor: "{colors.brand-soft}"
     textColor: "{colors.muted}"
-    padding: "10px 0"
+    padding: "12px 24px"
   history-row:
     textColor: "{colors.ink}"
     padding: "24px 0"
@@ -140,7 +139,7 @@ components:
 
 **Creative North Star: "Weekly shopping planner"**
 
-CC Cupões is a Portuguese operational dashboard for checking coupon records before shopping. Its forest-green navigation, pale sage account strip, and white offer rows make account ownership and usable dates easy to scan. Manrope gives the interface a consistent, restrained voice.
+CC Cupões is a Portuguese operational dashboard for checking coupon records before shopping. Its Continente-red navigation, pale red account strip, and white offer rows make account ownership and usable dates easy to scan. Manrope gives the interface a consistent, restrained voice.
 
 The implemented system uses alignment, horizontal rules, and clear text states. Discount values lead each offer; account identity, conditions, and validity stay close. The account comparison preserves the same offer identity across columns.
 
@@ -148,7 +147,7 @@ This document records `dashboard/src/App.jsx` and `dashboard/src/style.css`, wit
 
 **Key Characteristics:**
 
-- Forest-green navigation and a sage account status strip.
+- Continente-red navigation and a pale red account status strip.
 - Self-hosted Manrope throughout the working interface.
 - Ruled offer rows with large discount values and explicit dates.
 - Portuguese account, status, comparison, and history labels.
@@ -156,31 +155,30 @@ This document records `dashboard/src/App.jsx` and `dashboard/src/style.css`, wit
 
 ## Colors
 
-Muted greens create continuity between navigation, text, and account context. Warm status colors identify attention without replacing the written state.
+Continente red identifies navigation, actions, selections, and featured offers. Neutral text keeps dense coupon lists readable. Warm status colors identify attention without replacing the written state.
 
 ### Primary
 
-- **Forest Green** (`green`): navigation bar, primary action, input caret, and core identity.
-- **Forest Hover** (`green-hover`): the enabled primary button's hover state.
-- **Leaf Green** (`heading-accent`): the second line of the main heading.
-- **Pale Sage** (`sage`): the shared account strip and comparison column heading.
-- **Light Leaf** (`inverse-muted`): secondary text inside the dark navigation bar.
+- **Continente Red** (`brand`): navigation bar, primary action, input caret, and core identity.
+- **Dark Red** (`brand-hover`): the enabled primary button's hover state.
+- **Pale Red** (`brand-soft`): the shared account strip and comparison column heading.
+- **Near White** (`inverse-muted`): secondary text inside the red navigation bar.
 
 ### Secondary
 
 - **Connected Green** (`connected`): a saved-session indicator.
-- **Positive Green** (`positive`): new-offer badge text and successful-check text.
+- **Positive Green** (`positive`): successful-check text.
 - **New Offer Wash** (`new-background`): the compact new-offer badge.
 - **Success Wash** (`success-background`): the successful-check message.
 - **Amber** (`amber`, `amber-bg`): account attention, approaching expiry, and the urgency badge.
 - **Rust** (`error`, `error-background`): failed checks and error messages.
-- **Focus Orange** (`focus`): keyboard focus outlines on interactive elements.
+- **Dark Red Focus** (`focus`): keyboard focus outlines on interactive elements.
 
 ### Neutral
 
-- **Green Ink** (`ink`): headings, offer content, selected navigation, and field text.
-- **Muted Green Ink** (`muted`): metadata, helper copy, date context, and unselected navigation.
-- **Garden Paper** (`background`): the page background.
+- **Charcoal** (`ink`): headings, offer content, selected navigation, and field text.
+- **Muted Charcoal** (`muted`): metadata, helper copy, date context, and unselected navigation.
+- **Off White** (`background`): the page background.
 - **White Surface** (`surface`): offer lists, fields, empty states, and text on the primary action.
 - **Soft Rule** (`line`): list, navigation, history, comparison, and footer dividers.
 - **Account Rule** (`account-divider`): separation inside the shared account strip.
@@ -198,7 +196,7 @@ The font files are self-hosted under `public/fonts/`. The regular face serves we
 
 ### Hierarchy
 
-- **Display:** the two-line page heading uses the responsive `display` token, tight tracking, and a green second line.
+- **Display:** the single-line **Cupões** heading uses the responsive `display` token and tight tracking.
 - **Headline:** account names and list captions use `headline`.
 - **Title:** offer and history titles use `title`; offer titles reduce to 0.92rem on mobile.
 - **Body:** descriptions and controls use the body family and rhythm. Supporting copy commonly uses 0.8rem.
@@ -230,9 +228,9 @@ At widths of 760px or less:
 
 ## Elevation & Depth
 
-The interface uses no box shadows. White working surfaces, sage grouping, horizontal rules, and type hierarchy establish depth. Account summaries belong to one shared strip; offer rows remain flat, contiguous records.
+The interface uses no box shadows. White working surfaces, pale red grouping, horizontal rules, and type hierarchy establish depth. Account summaries belong to one shared strip; offer rows remain flat, contiguous records.
 
-Buttons transition background color over 120ms with `ease-out`. Comparison rows briefly fade their sage background over 160ms. Both effects run only when `prefers-reduced-motion: no-preference` matches.
+Buttons transition background color over 120ms with `ease-out`. Comparison rows briefly fade their pale red background over 160ms. Both effects run only when `prefers-reduced-motion: no-preference` matches.
 
 ## Shapes
 
@@ -244,13 +242,13 @@ Icons use simple current-color SVG strokes with rounded caps and joins. The tick
 
 ### Buttons
 
-The primary action is a solid forest-green control with white text, bold weight, a leading refresh icon, and a minimum height of 44px. Its hover state uses `green-hover`. Disabled buttons use 0.6 opacity and a waiting cursor; the action label also reports the running state.
+The primary action is a solid Continente-red control with white text, bold weight, a leading refresh icon, and a minimum height of 44px. Its hover state uses `brand-hover`. Disabled buttons use 0.6 opacity and a waiting cursor; the action label also reports the running state.
 
 The date-reset action is an underlined text button with a transparent background. It appears only when a date filter is active. Interactive controls receive a 3px focus outline with a 4px offset. Hover and focus styling must remain independent.
 
 ### Inputs / Fields
 
-Native selects and the date input have white backgrounds, green text, a 1px field stroke, and gently rounded corners. They have a minimum height of 44px. Labels sit above controls with a 7px gap. The date input uses 12px right padding; selects reserve more room for their native arrow.
+Native selects and the date input have white backgrounds, charcoal text, a 1px field stroke, and gently rounded corners. They have a minimum height of 44px. Labels sit above controls with a 7px gap. The date input uses 12px right padding; selects reserve more room for their native arrow.
 
 ### Navigation
 
@@ -260,7 +258,7 @@ The three views are **Cupões**, **Comparar contas**, and **Histórico**. Naviga
 
 Store buttons pair an official logo inside a circle with a bold, muted store name underneath. Continente, Galp, Wells, Pizza Hut, Taco Bell, KFC, and Pans & Company use local logo assets. TacoBell and Pans&Company labels use the same respective assets. Unknown brands use up to two initials. Only brands represented in coupon records appear; the selector is absent when no brands exist. Continente is selected initially when present, otherwise the first available brand is used. Selection remains when that brand is still available.
 
-The circle uses the `store-circle` size, a white surface, and a 2px soft-rule border. Each button has an 84px minimum width and a 10px gap between its circle and label. Logos fit within 60% of the circle width and 48% of its height. The selected circle has a 3px forest-green border and sage background; its label uses green ink. Hover changes the unselected border to muted green. Buttons retain the shared focus outline, and `aria-pressed` exposes selection.
+The circle uses the `store-circle` size, a white surface, and a 2px soft-rule border. Each button has an 84px minimum width and a 10px gap between its circle and label. Logos fit within 60% of the circle width and 48% of its height. The selected circle has a 3px Continente-red border and pale red background; its label uses charcoal. Hover changes the unselected border to muted charcoal. Buttons retain the shared focus outline, and `aria-pressed` exposes selection.
 
 A rust dot (12px) sits at the upper-right of the circle with a 2px page-background border. It marks new, present coupons that are available or upcoming in the relevant account scope. The accessible button name adds **novos cupões** when the dot appears. Store labels remain visible below every logo.
 
@@ -268,11 +266,11 @@ The selected store scopes coupons, comparison, history, and available/upcoming c
 
 ### Chips
 
-**Novo** and **Expira em 48h** are compact informational badges, not controls. They use their dedicated positive and amber colors, bold 0.68rem type, and the `badge` shape. Keep account and brand text alongside them.
+**Novo** and **Expira em 48h** are compact informational badges, not controls. They use brand red and amber colors respectively, bold 0.68rem type, and the `badge` shape. Keep account and brand text alongside them.
 
 ### Account Strip
 
-Two summaries share a sage container with one divider. Each shows the account name, a written connection state with a dot, and the last successful check. Errors remain visible beneath the summary. Manual-login guidance uses a native disclosure. On mobile, the divider becomes horizontal; state text remains present.
+Three summaries share a pale red container with dividers. Each shows the account name, a written connection state with a dot, and the last successful check. Errors remain visible beneath the summary. Manual-login guidance uses a native disclosure. On mobile, the divider becomes horizontal; state text remains present.
 
 ### Ruled Offer Row
 
@@ -280,13 +278,13 @@ The discount leads, followed by brand, account, badges, offer title, and the con
 
 Upcoming offers use a light gray surface, neutral text, grayscale images, and an **Em breve** badge. Their validity block leads with **Disponível a partir de** and the start date, followed by the end date. Conditions remain accessible. Upcoming account comparison values also use neutral text and retain their written state.
 
-The €5 offers for purchases over €20 at Continente or over €5 at Wells carry a **Destaque** badge. Available versions lead each store's list and comparison, with a sage surface and a forest-green discount block in the coupon list. Upcoming versions retain the gray treatment and normal expiry order. Removed, used, and expired versions are not featured; account and date filters still apply.
+The €5 offers for purchases over €20 at Continente or over €5 at Wells carry a **Destaque** badge. Available versions lead each store's list and comparison, with a pale red surface and a Continente-red discount block in the coupon list. Upcoming versions retain the gray treatment and normal expiry order. Removed, used, and expired versions are not featured; account and date filters still apply.
 
 Unknown discounts render **Ver imagem** with **Valor não identificado**. The disclosure contains conditions, code, known purchase information, first detection, and the original offer image when available. Android offers use the app’s accessible discount text and omit the image. This image is evidence content, not decoration. Details use a side-by-side layout on desktop and stack on mobile.
 
 ### Account Comparison
 
-Matching offers share one identity and date range, then display each account's values. The desktop heading names each account column. Mobile labels repeat the account name above each value. **Sem esta oferta** and **Por verificar** distinguish known absence from missing verification. The account filter controls the next manual check; comparison continues to show all accounts.
+Matching offers share one identity and date range, then display each account's values. Comparison rows have 24px padding; the desktop header uses 12px vertical and 24px horizontal padding so its columns align. Mobile rows use 20px vertical and 16px horizontal padding. The desktop heading names each account column. Mobile labels repeat the account name above each value. **Sem esta oferta** and **Por verificar** distinguish known absence from missing verification. The account filter controls the next manual check; comparison continues to show all accounts.
 
 ### Filtered History
 

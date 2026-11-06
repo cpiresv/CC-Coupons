@@ -379,13 +379,7 @@ export default function App() {
       </header>
       <main>
         <div className="page-heading">
-          <div>
-            <h1>
-              Os seus cupões,
-              <br />
-              <span>em dia.</span>
-            </h1>
-          </div>
+          <h1>Cupões</h1>
           <div className="check-control">
             <button
               className="primary"

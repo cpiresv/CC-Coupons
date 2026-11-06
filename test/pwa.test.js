@@ -62,7 +62,7 @@ test("Built PWA survives an offline browser restart and reconnects without repla
         canvas.width = canvas.height = 100;
         const context = canvas.getContext("2d");
         context.drawImage(image, 0, 0, 100, 100);
-        const light = (x, y) => context.getImageData(x, y, 1, 1).data[0] > 200;
+        const light = (x, y) => context.getImageData(x, y, 1, 1).data.slice(0, 3).every(channel => channel > 200);
         return light(50, 31) && light(50, 69) && !light(50, 85);
       }, src), true, `${src} must show one complete ticket`);
     }
