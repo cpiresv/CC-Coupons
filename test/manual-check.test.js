@@ -11,9 +11,10 @@ import { port } from "../src/config.js";
 test("Manual checks acknowledge immediately, exclude other work, and retain their result across server restarts", async () => {
   const db = openStore(":memory:");
   let complete, calls = 0, fail = false;
-  const app = createApp(db, () => {
+  const app = createApp(db, (_db, _id, { onProgress }) => {
     calls++;
     if (fail) throw Error("private worker details");
+    onProgress("account-1", { stage: "coupons", brand: "Galp", read: 1, total: 2 });
     return new Promise(resolve => { complete = resolve; });
   }, "");
   const server = app.listen(0, "127.0.0.1");
@@ -38,10 +39,13 @@ test("Manual checks acknowledge immediately, exclude other work, and retain thei
     const accepted = await request("/api/check", "POST");
     assert.equal(accepted.status, 202);
     assert.equal(accepted.body.check.status, "running");
+    assert.deepEqual(accepted.body.check.progress["account-1"], { stage: "queued" });
     assert.equal(calls, 1);
     const state = (await request("/api/state")).body;
     assert.equal(state.running, true);
     assert.equal(state.manualCheck.id, accepted.body.check.id);
+    assert.deepEqual(state.manualCheck.progress["account-1"], { stage: "coupons", brand: "Galp", read: 1, total: 2 });
+    assert.deepEqual(state.manualCheck.progress["account-2"], { stage: "queued" });
     assert.equal((await request("/api/check", "POST")).status, 409);
     assert.equal((await request("/api/cards/account-1/activate", "POST")).status, 409);
     let drained = false;
@@ -90,7 +94,10 @@ test("Manual refresh recovers a lost acknowledgement, offline status, page reloa
     let starts = 0, disconnected = false;
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
-    const state = { accounts: [{ id: "account-1", name: "Conta de teste", auth: "ready", source: "android" }],
+    const state = { accounts: [
+      { id: "account-1", name: "Conta de teste", auth: "ready", source: "android" },
+      { id: "account-2", name: "Outra conta", auth: "ready", source: "android" },
+    ],
       coupons: [], events: [], notifications: [], running: false, manualCheck: null, dailyTime: "09:00" };
     await page.route("**/api/state", route => disconnected ? route.abort("failed")
       : route.fulfill({ json: { ...state, serverNow: Date.now() } }));
@@ -98,7 +105,10 @@ test("Manual refresh recovers a lost acknowledgement, offline status, page reloa
       assert.equal(route.request().headers().prefer, "respond-async");
       starts++;
       state.running = true;
-      state.manualCheck = { id: String(starts), accountId: "all", status: "running", startedAt: new Date().toISOString() };
+      state.manualCheck = {
+        id: String(starts), accountId: "all", status: "running", startedAt: new Date().toISOString(),
+        progress: { "account-1": { stage: "balance" }, "account-2": { stage: "opening" } },
+      };
       return starts === 1 ? route.abort("failed")
         : route.fulfill({ status: 202, json: { check: state.manualCheck, serverNow: Date.now() } });
     });
@@ -108,10 +118,16 @@ test("Manual refresh recovers a lost acknowledgement, offline status, page reloa
     await page.getByText(/Ligação interrompida.*estado da verificação/).waitFor();
     await refreshState();
     await page.getByText(/A verificar cupões no Mac/).waitFor();
+    const progress = page.getByRole("list", { name: "Progresso por conta" });
+    await progress.getByText("A ler o saldo").waitFor();
+    await progress.getByText("A abrir a conta").waitFor();
+    state.manualCheck.progress["account-1"] = { stage: "coupons", brand: "Galp", read: 1, total: 2 };
+    await progress.getByText("A ler cupões · Galp (1/2)").waitFor();
     assert.equal(await page.getByRole("button", { name: "Operação em curso" }).isDisabled(), true);
     disconnected = true;
     await refreshState();
     await page.getByText("Volte a ligar ao Mac para confirmar o estado da última verificação.").waitFor();
+    assert.equal(await progress.count(), 0);
     assert.equal(starts, 1);
     state.running = false;
     state.manualCheck = { ...state.manualCheck, status: "completed", results: [{ accountId: "account-1", ok: true }], completedAt: new Date().toISOString() };
@@ -124,6 +140,7 @@ test("Manual refresh recovers a lost acknowledgement, offline status, page reloa
     await page.getByText(/A verificar cupões no Mac/).waitFor();
     await page.reload();
     await page.getByText(/A verificar cupões no Mac/).waitFor();
+    await progress.getByText("A ler o saldo").waitFor();
     state.running = false;
     state.manualCheck = { ...state.manualCheck, status: "completed", results: [{ accountId: "account-1", ok: false, code: "AUTH_REQUIRED" }], completedAt: new Date().toISOString() };
     await refreshState();

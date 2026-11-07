@@ -218,6 +218,22 @@ function Comparison({ coupons, accounts }) {
     </div>
   );
 }
+function checkStep({ stage, brand, read, total, count }) {
+  if (stage === "coupons" && brand)
+    return total ? `A ler cupões · ${brand} (${read}/${total})` : `A abrir cupões · ${brand}`;
+  if (stage === "done")
+    return `Concluída · ${count} ${count === 1 ? "cupão" : "cupões"}`;
+  return {
+    queued: "A aguardar",
+    opening: "A abrir a conta",
+    balance: "A ler o saldo",
+    coupons: "A ler cupões",
+    saving: "A guardar cupões",
+    retrying: "A preparar nova tentativa",
+    failed: "Verificação falhou",
+  }[stage] || "A verificar";
+}
+
 export default function App() {
   const [data, setData] = useState(null),
     [error, setError] = useState(""),
@@ -228,6 +244,8 @@ export default function App() {
     [account, setAccount] = useState("all"),
     [status, setStatus] = useState("current"),
     [expiry, setExpiry] = useState("");
+  const manualCheck = data?.manualCheck;
+  const checking = manualCheck?.status === "running" && !data.offline;
   useEffect(() => {
     const controller = new AbortController();
     let timer;
@@ -244,7 +262,7 @@ export default function App() {
         if (e.name !== "AbortError") setError(e.message);
       } finally {
         loading = false;
-        if (!controller.signal.aborted && !document.hidden) timer = setTimeout(load, 15000);
+        if (!controller.signal.aborted && !document.hidden) timer = setTimeout(load, checking ? 2000 : 15000);
       }
     };
     const visibility = () => {
@@ -262,7 +280,7 @@ export default function App() {
       window.removeEventListener("offline", load);
       document.removeEventListener("visibilitychange", visibility);
     };
-  }, []);
+  }, [checking]);
   async function useCard(accountId) {
     setActivating(accountId);
     setError("");
@@ -317,7 +335,6 @@ export default function App() {
       setBusy(false);
     }
   }
-  const manualCheck = data?.manualCheck;
   const checkFailed = !data?.offline && !busy && manualCheck &&
     (manualCheck.status === "failed" || manualCheck.results?.some((result) => !result.ok));
   const errorMessage = error || (checkFailed
@@ -417,9 +434,19 @@ export default function App() {
           </div>
         )}
         {notice && (
-          <p role="status" className="message success">
-            {notice}
-          </p>
+          <div className="message success">
+            <p role="status">{notice}</p>
+            {checking && manualCheck.progress && (
+              <ul className="check-progress" aria-label="Progresso por conta" aria-live="polite">
+                {Object.entries(manualCheck.progress).map(([id, progress]) => (
+                  <li key={id}>
+                    <strong>{accountName(id)}</strong>
+                    <span>{checkStep(progress)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
         {data && (
           <p role="status" className={data.offline || !data.saved ? "message offline" : "sync-status"}>

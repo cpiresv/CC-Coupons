@@ -40,7 +40,7 @@ export function safeCode(error) {
   if (error.name === "TimeoutError") return "TIMEOUT";
   return "CHECK_FAILED";
 }
-export async function runChecks(db, id = "all", { scheduledDay } = {}) {
+export async function runChecks(db, id = "all", { scheduledDay, onProgress = () => {} } = {}) {
   const selected = selectAccounts(id);
   const release = acquireLock(db);
   try {
@@ -55,15 +55,17 @@ export async function runChecks(db, id = "all", { scheduledDay } = {}) {
     }
     // Keep the lock until every device has finished, even if a worker throws.
     const checks = await Promise.allSettled(selected.map(async (account) => {
+      const progress = (update) => onProgress(account.id, update);
       await log("check_started", account.id, undefined, undefined, account.source);
       let succeeded = false;
       for (let attempt = 0; attempt < 3; attempt++) {
         let profile;
         let page;
         try {
+          progress({ stage: "opening" });
           let coupons;
           if (account.source === "android") {
-            coupons = await checkAndroid(account.id, (balance) => saveBalance(db, account.id, balance));
+            coupons = await checkAndroid(account.id, (balance) => saveBalance(db, account.id, balance), progress);
           } else {
             profile = await openCheckProfile(account.id);
             page = profile.page;
@@ -74,13 +76,16 @@ export async function runChecks(db, id = "all", { scheduledDay } = {}) {
               });
               if (response && !response.ok())
                 throw new CheckError("NETWORK_ERROR");
+              progress({ stage: "coupons" });
               return extractCoupons(page);
             });
             await saveSession(profile.context, account.id);
           }
+          progress({ stage: "saving" });
           const changes = saveSnapshot(db, account.id, coupons);
           await log("check_success", account.id, undefined, coupons.length, profile?.source || account.source);
           succeeded = true;
+          progress({ stage: "done", count: coupons.length });
           return {
             accountId: account.id,
             ok: true,
@@ -100,6 +105,7 @@ export async function runChecks(db, id = "all", { scheduledDay } = {}) {
             if (page) await debugScreenshot(page, account.id);
             recordFailure(db, account.id, code);
             await log("check_failed", account.id, code, undefined, profile?.source || account.source);
+            progress({ stage: "failed" });
             return { accountId: account.id, ok: false, code };
           }
         } finally {
@@ -110,6 +116,7 @@ export async function runChecks(db, id = "all", { scheduledDay } = {}) {
             await profile.close().catch(() => {});
           }
         }
+        progress({ stage: "retrying" });
         await new Promise((resolve) =>
           setTimeout(resolve, (attempt + 1) * 5000),
         );

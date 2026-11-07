@@ -149,7 +149,7 @@ async function navigate(device, nodes, node, predicate) {
   }
 }
 
-export async function collectAndroidCoupons(device) {
+export async function collectAndroidCoupons(device, onProgress = () => {}) {
   let nodes = await device.waitFor((ns) => ns.some((n) => /-CouponsLink$/.test(n["resource-id"] || "")));
   nodes = await navigate(device, nodes, nodes.find((n) => /-CouponsLink$/.test(n["resource-id"] || "")), (ns) => ns.some((n) => /-SelectInsigniaLink2$/.test(n["resource-id"] || "")));
   const brands = nodes.filter((n) => /-SelectInsigniaLink2$/.test(n["resource-id"] || "")).map(label);
@@ -157,11 +157,13 @@ export async function collectAndroidCoupons(device) {
     throw new CheckError("LAYOUT_CHANGED");
   const coupons = [];
   for (const brand of brands) {
+    onProgress({ stage: "coupons", brand });
     const tab = nodes.find((n) => /-SelectInsigniaLink2$/.test(n["resource-id"] || "") && label(n) === brand);
     if (!tab) throw new CheckError("LAYOUT_CHANGED");
     nodes = await navigate(device, nodes, tab, (ns) => ns.some((n) => /-seeDetail2?$/.test(n["resource-id"] || "")) && ns.some((n) => label(n).startsWith("Desconto ") && label(n).includes(`na marca ${brand}`)));
     const expected = new Set(nodes.filter((n) => /-seeDetail2?$/.test(n["resource-id"] || "")).map((n) => n["resource-id"])).size;
     if (!expected || expected > 100) throw new CheckError("UNVERIFIED_EMPTY_STATE");
+    onProgress({ stage: "coupons", brand, read: 0, total: expected });
     for (let index = 0; index < expected; index++) {
       const links = nodes.filter((n) => /-seeDetail2?$/.test(n["resource-id"] || ""));
       if (links.length !== expected) throw new CheckError("LAYOUT_CHANGED");
@@ -177,6 +179,7 @@ export async function collectAndroidCoupons(device) {
         } catch { return false; }
       });
       coupons.push(coupon);
+      onProgress({ stage: "coupons", brand, read: index + 1, total: expected });
       nodes = await navigate(device, nodes, nodes.find((n) => n["resource-id"]?.endsWith("-Back") && label(n) === "Voltar página anterior" && !n.hidden && !n["off-screen"]), (ns) => ns.some((n) => label(n) === "CouponsList") && ns.filter((n) => /-seeDetail2?$/.test(n["resource-id"] || "")).length === expected);
     }
   }
@@ -335,17 +338,19 @@ export async function openAndroid(accountId, { headed = false } = {}) {
   }
 }
 
-export async function checkAndroid(accountId, onBalance = () => {}) {
+export async function checkAndroid(accountId, onBalance = () => {}, onProgress = () => {}) {
   const device = await openAndroid(accountId).catch((error) => {
     onBalance(null);
     throw error;
   });
   try {
+    onProgress({ stage: "balance" });
     let balance = null;
     try { balance = await readAndroidBalance(device); }
     catch { await device.screenshot(); }
     onBalance(balance);
-    return await collectAndroidCoupons(device);
+    onProgress({ stage: "coupons" });
+    return await collectAndroidCoupons(device, onProgress);
   }
   catch (error) {
     await device.screenshot();

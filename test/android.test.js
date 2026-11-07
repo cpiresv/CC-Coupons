@@ -249,7 +249,14 @@ test("Collection discovers all seven stores and queues new coupons after navigat
 
 test("Android collection opens every store's list entries and validates details before saving atomically", async () => {
   const device = fakeDevice();
-  const coupons = await collectAndroidCoupons(device);
+  const progress = [];
+  const coupons = await collectAndroidCoupons(device, step => {
+    if (step.total) progress.push([step.brand, step.read, step.total]);
+  });
+  assert.deepEqual(progress, [
+    ["Continente", 0, 2], ["Continente", 1, 2], ["Continente", 2, 2],
+    ["Galp", 0, 1], ["Galp", 1, 1],
+  ]);
   assert.equal(coupons.length, 3);
   assert.deepEqual(coupons.map((c) => c.brand), ["Continente", "Continente", "Galp"]);
   const db = openStore(":memory:");

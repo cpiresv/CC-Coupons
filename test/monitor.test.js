@@ -43,10 +43,12 @@ test("all accounts overlap, retain failed data, and notify once after cleanup", 
   const gates = new Map(ids.map(id => [id, Promise.withResolvers()]));
   const started = [];
   const active = new Set();
+  const progress = new Map(ids.map(id => [id, []]));
   let flushes = 0;
-  checkAndroid = async id => {
+  checkAndroid = async (id, _onBalance, onProgress) => {
     started.push(id);
     active.add(id);
+    onProgress({ stage: "coupons", brand: "Continente", read: 0, total: 1 });
     try {
       return await gates.get(id).promise;
     } finally {
@@ -58,7 +60,10 @@ test("all accounts overlap, retain failed data, and notify once after cleanup", 
     assert.equal(isBusy(db), true);
     flushes++;
   };
-  const run = runChecks(db, "all", { scheduledDay: "2026-11-05" });
+  const run = runChecks(db, "all", {
+    scheduledDay: "2026-11-05",
+    onProgress: (id, step) => progress.get(id).push(step),
+  });
   try {
     await until(() => started.length === 3);
     assert.deepEqual([...started].sort(), ids);
@@ -75,6 +80,11 @@ test("all accounts overlap, retain failed data, and notify once after cleanup", 
       { accountId: "account-2", ok: false, code: "AUTH_REQUIRED" },
       { accountId: "account-3", ok: true, count: 1, changes: 1 },
     ]);
+    assert.deepEqual(progress.get("account-3"), [
+      { stage: "opening" }, { stage: "coupons", brand: "Continente", read: 0, total: 1 },
+      { stage: "saving" }, { stage: "done", count: 1 },
+    ]);
+    assert.deepEqual(progress.get("account-2").at(-1), { stage: "failed" });
     assert.equal(db.prepare("SELECT present FROM coupons WHERE account_id='account-2'").get().present, 1);
     assert.equal(flushes, 1);
     assert.equal(isBusy(db), false);

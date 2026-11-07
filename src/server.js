@@ -99,8 +99,9 @@ export function createApp(db, check = runChecks, privateHost = tailscaleHost, ac
     if (!req.is("application/json"))
       return res.status(415).json({ error: "JSON required" });
     const id = req.body?.accountId || "all";
+    let selected;
     try {
-      selectAccounts(id);
+      selected = selectAccounts(id);
     } catch {
       return res.status(400).json({ error: "Invalid account" });
     }
@@ -108,14 +109,19 @@ export function createApp(db, check = runChecks, privateHost = tailscaleHost, ac
       return res
         .status(409)
         .json({ error: "A check or login is already running" });
-    manualCheck = { id: randomUUID(), accountId: id, status: "running", startedAt: new Date().toISOString() };
+    manualCheck = {
+      id: randomUUID(), accountId: id, status: "running", startedAt: new Date().toISOString(),
+      progress: Object.fromEntries(selected.map(account => [account.id, { stage: "queued" }])),
+    };
     saveCheck();
     running = true;
     const asynchronous = req.get("Prefer") === "respond-async";
     if (asynchronous) res.status(202).json({ check: manualCheck, serverNow: Date.now() });
     pendingCheck = (async () => {
       try {
-        const results = await check(db, id);
+        const results = await check(db, id, {
+          onProgress(accountId, update) { manualCheck.progress[accountId] = update; },
+        });
         manualCheck = { ...manualCheck, status: "completed", results, completedAt: new Date().toISOString() };
       } catch {
         manualCheck = { ...manualCheck, status: "failed", error: "CHECK_FAILED", completedAt: new Date().toISOString() };

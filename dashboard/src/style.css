@@ -725,6 +725,19 @@ footer > div {
   background: var(--brand-soft);
   color: var(--brand-hover);
 }
+.check-progress {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 12px 20px;
+  margin: 12px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+.check-progress li {
+  display: grid;
+  gap: 2px;
+}
 .message.offline {
   background: var(--amber-bg);
   color: var(--amber);
