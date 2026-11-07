@@ -105,7 +105,8 @@ test("Built PWA survives an offline browser restart and reconnects without repla
     manualCheck = { ...manualCheck, status: "completed", results: [], completedAt: new Date().toISOString() };
     unavailable = false;
     await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
-    await page.getByText(/Verificação concluída em/).waitFor();
+    await page.getByRole("button", { name: "Verificar cupões", exact: true }).waitFor();
+    assert.equal(await page.getByText(/Verificação concluída em/).count(), 0);
     assert.equal(checks, 1);
     assert.deepEqual(errors, []);
   } finally {

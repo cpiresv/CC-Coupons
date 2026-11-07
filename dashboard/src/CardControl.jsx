@@ -33,9 +33,10 @@ export default function CardControl({ account, offline, running, activating, clo
         </strong>
       </div> : <button className="primary" onClick={() => onActivate(account.id)}
         disabled={running || offline || account.auth !== "ready"}
+        aria-busy={!!activating}
         aria-label={`Usar cartão de ${account.name}`}>
         <CreditCard size={18} strokeWidth={1.7} aria-hidden="true" />
-        {activating ? "A ativar cartão…" : "Usar cartão"}
+        <span className="button-label">{activating ? "A ativar cartão…" : "Usar cartão"}</span>
       </button>}
     <p role="status" aria-atomic="true">{activating
       ? `${account.name}: a obter autorização na app Cartão Continente. Aguarde…`

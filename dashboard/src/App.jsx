@@ -349,7 +349,7 @@ export default function App() {
       ? "Volte a ligar ao Mac para confirmar o estado da última verificação."
       : manualCheck.status === "running"
         ? "A verificar cupões no Mac. Pode fechar esta página e voltar mais tarde."
-        : `Verificação concluída em ${instant(manualCheck.completedAt)}. Os cupões estão atualizados.`
+        : ""
     : "";
   const accountName = (id) =>
     data?.accounts.find((a) => a.id === id)?.name || id;
@@ -411,9 +411,11 @@ export default function App() {
               className="primary"
               onClick={check}
               disabled={!data || running || data.offline}
+              aria-label={activating ? "Ativação de cartão em curso" : running ? "Operação em curso" : "Verificar cupões"}
+              aria-busy={!!running}
             >
               <RefreshCw size={20} strokeWidth={1.7} aria-hidden="true" />
-              {activating ? "Ativação de cartão em curso" : running ? "Operação em curso" : "Verificar cupões"}
+              <span className="button-label">{activating ? "Ativação de cartão em curso" : running ? "Operação em curso" : "Verificar cupões"}</span>
             </button>
             <small>
               {account === "all"
@@ -484,18 +486,18 @@ export default function App() {
                     </span>
                   </div>
                   <p className="account-balance">
-                    Saldo em cartão{" "}
+                    <span className="balance-label">Saldo em cartão</span>{" "}
                     <strong>{Number.isSafeInteger(a.balance?.cents)
                       ? euros.format(a.balance.cents / 100) : "Por verificar"}</strong>
                   </p>
-                  {a.balance?.checkedAt && <p>Saldo verificado: <strong>{instant(a.balance.checkedAt)}</strong></p>}
+                  {a.balance?.checkedAt && <p className="balance-checked">Saldo verificado: <strong>{instant(a.balance.checkedAt)}</strong></p>}
                   {!!a.balance?.error && <p className="account-error">
                     {a.balance.checkedAt
                       ? "Não foi possível atualizar o saldo. O valor anterior foi mantido."
                       : "Não foi possível ler o saldo. Tente verificar esta conta novamente."}
                   </p>}
-                  <p>
-                    Última verificação:{" "}
+                  <p className="last-checked">
+                    <span className="verification-label">Última verificação:</span><span className="verification-short" title="Última verificação">UV:</span>{" "}
                     <strong>{instant(a.last_success)}</strong>
                   </p>
                   {a.source === "android" && <CardControl

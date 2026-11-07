@@ -65,6 +65,20 @@ test("Store selection keeps coupons, comparison, history and account filters ali
     assert.deepEqual((await balances.allTextContents()).map(text => text.replace(/\s/g, " ")), ["15,83 €", "0,00 €", "Por verificar"]);
     assert.equal(await page.getByText("Não foi possível atualizar o saldo. O valor anterior foi mantido.").count(), 1);
     assert.equal(await page.getByText(/Saldo verificado:.*4\/11, 11:58/).count(), 2);
+    for (const width of [320, 390, 440]) {
+      await page.setViewportSize({ width, height: 844 });
+      const boxes = await page.locator(".account").evaluateAll(elements =>
+        elements.map(element => {
+          const box = element.getBoundingClientRect();
+          return { top: box.top, right: box.right };
+        }));
+      assert.equal(new Set(boxes.map(box => box.top)).size, 1);
+      assert.ok(boxes.every(box => box.right <= width));
+      assert.equal(await page.locator(".balance-checked").first().isVisible(), false);
+      assert.equal(await page.locator(".connection").first().isVisible(), false);
+      assert.equal(await page.getByRole("button", { name: "Usar cartão de Conta 1" }).isVisible(), true);
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
     const { mkdir } = await import("node:fs/promises");
     await mkdir(".impeccable/review", { recursive: true });
     await page.screenshot({ path: ".impeccable/review/balance-mobile.png", fullPage: true });
@@ -248,7 +262,7 @@ test("Card activation shows a confirmed per-account timer across reload, sleep, 
     await page.goto(url);
     const button = page.getByRole("button", { name: "Usar cartão de Conta 2", exact: true });
     await button.click();
-    await page.getByText("A ativar cartão…", { exact: true }).waitFor();
+    await button.and(page.locator('[aria-busy="true"]')).waitFor();
     const announcement = await page.locator(".account").nth(1).getByRole("status").elementHandle();
     assert.equal(await page.getByRole("button", { name: "Usar cartão de Conta 1" }).isDisabled(), true);
     assert.equal(await page.getByRole("timer").count(), 0);

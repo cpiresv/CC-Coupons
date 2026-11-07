@@ -133,7 +133,8 @@ test("Manual refresh recovers a lost acknowledgement, offline status, page reloa
     state.manualCheck = { ...state.manualCheck, status: "completed", results: [{ accountId: "account-1", ok: true }], completedAt: new Date().toISOString() };
     disconnected = false;
     await page.reload();
-    await page.getByText(/Verificação concluída em/).waitFor();
+    await page.getByRole("button", { name: "Verificar cupões", exact: true }).waitFor();
+    assert.equal(await page.getByText(/Verificação concluída em/).count(), 0);
     assert.equal(starts, 1);
     assert.equal(await page.getByRole("alert").count(), 0);
     await page.getByRole("button", { name: "Verificar cupões", exact: true }).click();
