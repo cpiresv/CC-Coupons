@@ -1,4 +1,4 @@
-import { RefreshCw, SlidersHorizontal, Star } from "lucide-react";
+import { Check, CircleHelp, Clock3, RefreshCw, SlidersHorizontal, Star, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { readState, rememberCard } from "./offline.js";
 import CardControl from "./CardControl.jsx";
@@ -190,15 +190,19 @@ function Comparison({ coupons, accounts }) {
                 <span className="mobile-account">{a.name}</span>
                 {g.accounts[a.id]?.map((c) => (
                   <span className={c.status} key={c.key}>
+                    <span className={`compare-state ${c.status === "upcoming" ? "state-upcoming" : "state-available"}`}
+                      role="img" aria-label={c.status === "upcoming" ? "Em breve" : "Disponível"}
+                      title={c.status === "upcoming" ? "Em breve" : "Disponível"}>
+                      {c.status === "upcoming" ? <Clock3 aria-hidden="true" /> : <Check aria-hidden="true" />}
+                    </span>
                     <strong><CouponDiscount coupon={c} /></strong>
-                    <small>
-                      {c.status === "upcoming" ? "Em breve" : "Disponível"}
-                    </small>
                   </span>
                 )) || (
-                  <small>
-                    {a.last_success ? "Sem esta oferta" : "Por verificar"}
-                  </small>
+                  <span className={`compare-state ${a.last_success ? "state-missing" : "state-unknown"}`}
+                    role="img" aria-label={a.last_success ? "Sem esta oferta" : "Por verificar"}
+                    title={a.last_success ? "Sem esta oferta" : "Por verificar"}>
+                    {a.last_success ? <X aria-hidden="true" /> : <CircleHelp aria-hidden="true" />}
+                  </span>
                 )}
               </div>
             ))}

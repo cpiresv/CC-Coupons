@@ -88,7 +88,9 @@ test("Store selection keeps coupons, comparison, history and account filters ali
     await page.screenshot({ path: ".impeccable/review/balance-desktop.png", fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole("button", { name: "Comparar contas", exact: true }).click();
-    assert.equal(await page.locator(".compare-value .upcoming").innerText(), "5 €\nEm breve");
+    assert.equal(await page.locator(".compare-value .upcoming strong").innerText(), "5 €");
+    assert.equal(await page.locator(".compare-value").getByRole("img", { name: "Em breve", exact: true }).count(), 1);
+    assert.equal(await page.locator(".compare-value").getByRole("img", { name: "Disponível", exact: true }).count(), 1);
     await page.getByRole("button", { name: "Cupões", exact: true }).click();
     const stores = page.getByRole("group", { name: "Filtrar por loja" });
     const headerAndAccounts = () => page.evaluate(() =>
@@ -133,7 +135,7 @@ test("Store selection keeps coupons, comparison, history and account filters ali
     await page.getByRole("button", { name: "Comparar contas", exact: true }).click();
     await page.locator(".comparison .brand").waitFor();
     assert.deepEqual(await page.locator(".comparison .brand").allTextContents(), ["Galp"]);
-    assert.equal(await page.getByText("Sem esta oferta", { exact: true }).count(), 2);
+    assert.equal(await page.getByRole("img", { name: "Sem esta oferta", exact: true }).count(), 2);
     assert.equal((await page.locator(".compare-value").filter({hasText: "Conta 3"}).locator("strong").textContent()).trim(), "10 cênt./L");
     await page.getByRole("button", { name: "Histórico", exact: true }).click();
     await page.getByRole("heading", { name: "Últimas alterações · Galp" }).waitFor();

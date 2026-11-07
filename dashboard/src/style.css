@@ -703,7 +703,54 @@ dd {
   flex-direction: column;
   justify-content: center;
   gap: 8px;
+  align-items: center;
+  text-align: center;
+  min-width: 0;
+  padding: 12px 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
   font-variant-numeric: tabular-nums;
+}
+.compare-value > .available,
+.compare-value > .upcoming {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.compare-state {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+.compare-state svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2.5;
+}
+.state-available {
+  color: #bd0018;
+  background: #ffe0e5;
+}
+.state-upcoming {
+  color: #795004;
+  background: #fff4d4;
+}
+.state-missing,
+.state-unknown {
+  color: var(--muted);
+  background: #f1f1f1;
+}
+.compare-value:has(.state-available) {
+  border-color: #e9adb6;
+  background: #fff0f3;
+}
+.compare-value:has(.state-upcoming) {
+  border-color: #e4d39f;
+  background: #fffaf0;
 }
 .compare-value strong {
   font-size: 1.5rem;
@@ -716,7 +763,7 @@ dd {
   color: #606762;
 }
 .compare-value .available strong {
-  color: var(--brand-hover);
+  color: #bd0018;
 }
 .mobile-account {
   display: none;
@@ -967,8 +1014,8 @@ footer > div {
   .compare-row {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     overflow-wrap: anywhere;
-    gap: 14px;
-    padding: 20px 16px;
+    gap: 8px;
+    padding: 20px 12px;
   }
   .compare-value strong {
     font-size: clamp(0.9rem, 3.7vw, 1.4rem);
