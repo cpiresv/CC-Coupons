@@ -555,7 +555,7 @@ export default function App() {
                 ].map(([id, label]) => (
                   <button
                     key={id}
-                    className={tab === id ? "tab selected" : "tab"}
+                    className={`tab ${tab === id ? "selected" : ""} ${id === "history" ? "history-tab" : ""}`}
                     aria-current={tab === id ? "page" : undefined}
                     onClick={() => setTab(id)}
                   >
@@ -568,64 +568,71 @@ export default function App() {
                 <span>·</span> {upcoming} em breve
               </p>
             </div>
-            <div className="filters">
-              <label>
-                Conta
-                <select
-                  value={account}
-                  onChange={(e) => setAccount(e.target.value)}
-                >
-                  <option value="all">Todas as contas</option>
-                  {data.accounts.map((a) => (
-                    <option value={a.id} key={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {tab === "coupons" && (
-                <>
-                  <label>
-                    Estado
-                    <select
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value)}
-                    >
-                      <option value="current">Atuais e em breve</option>
-                      <option value="new">Novos nas últimas 48h</option>
-                      <option value="expiring">Expiram em 48h</option>
-                      {Object.entries(statuses).map(([key, label]) => (
-                        <option value={key} key={key}>
-                          {label}
-                        </option>
-                      ))}
-                      <option value="all">Todos, incluindo histórico</option>
-                    </select>
-                  </label>
-                  <label>
-                    Expira até
-                    <input
-                      type="date"
-                      value={expiry}
-                      onChange={(e) => setExpiry(e.target.value)}
-                    />
-                  </label>
-                  {expiry && (
-                    <button
-                      className="text-button"
-                      onClick={() => setExpiry("")}
-                    >
-                      Limpar data
-                    </button>
-                  )}
-                </>
-              )}
-              {tab === "compare" && (
-                <p>
-                  O filtro Conta define a próxima verificação. A comparação inclui todas as contas.
-                </p>
-              )}
-            </div>
+            <details className="filter-panel">
+              <summary>Filtros{tab === "history" ? " · Histórico" : ""}</summary>
+              <div className="filters">
+                <label>
+                  Conta
+                  <select
+                    value={account}
+                    onChange={(e) => setAccount(e.target.value)}
+                  >
+                    <option value="all">Todas as contas</option>
+                    {data.accounts.map((a) => (
+                      <option value={a.id} key={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {tab === "coupons" && (
+                  <>
+                    <label>
+                      Estado
+                      <select
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value)}
+                      >
+                        <option value="current">Atuais e em breve</option>
+                        <option value="new">Novos nas últimas 48h</option>
+                        <option value="expiring">Expiram em 48h</option>
+                        {Object.entries(statuses).map(([key, label]) => (
+                          <option value={key} key={key}>
+                            {label}
+                          </option>
+                        ))}
+                        <option value="all">Todos, incluindo histórico</option>
+                      </select>
+                    </label>
+                    <label>
+                      Expira até
+                      <input
+                        type="date"
+                        value={expiry}
+                        onChange={(e) => setExpiry(e.target.value)}
+                      />
+                    </label>
+                    {expiry && (
+                      <button
+                        className="text-button"
+                        onClick={() => setExpiry("")}
+                      >
+                        Limpar data
+                      </button>
+                    )}
+                  </>
+                )}
+                {tab === "compare" && (
+                  <p>
+                    O filtro Conta define a próxima verificação. A comparação inclui todas as contas.
+                  </p>
+                )}
+              </div>
+              <button className="text-button mobile-history" onClick={() => setTab("history")}
+                aria-current={tab === "history" ? "page" : undefined}>
+                Histórico
+              </button>
+            </details>
             {tab === "coupons" && (
               <section aria-label="Cupões">
                 <div className="list-caption">

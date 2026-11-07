@@ -124,6 +124,8 @@ test("Store selection keeps coupons, comparison, history and account filters ali
     assert.equal(await page.locator(".coupon summary").innerText(), "Condições");
     assert.equal(await page.locator(".coupon .details-body img").count(), 0);
     assert.equal(await page.locator(".coupon").getByText("g1", { exact: true }).count(), 1);
+    assert.equal(await page.getByRole("combobox", { name: /^Conta/ }).isVisible(), false);
+    await page.locator(".filter-panel > summary").click();
     await page.getByRole("combobox", { name: /^Conta/ }).selectOption("account-1");
     await page.getByRole("heading", { name: "Galp · 0 cupões" }).waitFor();
     assert.equal(await page.locator(".coupon").count(), 0);
@@ -173,6 +175,7 @@ test("Store selection keeps coupons, comparison, history and account filters ali
     ] };
     await page.reload();
     await stores.getByRole("button", { name: /^Continente/ }).click();
+    await page.locator(".filter-panel > summary").click();
     await page.getByRole("combobox", { name: /^Estado/ }).selectOption("all");
     await page.getByRole("heading", { name: "Continente · 9 cupões", exact: true }).waitFor();
     assert.equal(await page.locator(".coupon.featured").count(), 2);
