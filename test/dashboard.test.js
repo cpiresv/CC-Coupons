@@ -181,7 +181,7 @@ test("Store selection keeps coupons, comparison, history and account filters ali
     assert.equal(await page.locator(".coupon.featured").count(), 2);
     assert.equal(await page.locator(".coupon").first().locator(".discount strong").innerText(), "5,00 €");
     assert.equal(await page.locator(".coupon").first().getByText("Destaque", { exact: true }).count(), 1);
-    assert.equal(await page.getByText("Destaques primeiro", { exact: true }).count(), 1);
+    assert.equal(await page.getByText("Destaques primeiro", { exact: true }).count(), 0);
     assert.equal(await page.locator(".coupon.featured.upcoming").evaluate(el => getComputedStyle(el).backgroundColor), "rgb(240, 241, 240)");
     await page.locator(".coupon.featured").first().locator("summary").click();
     assert.equal(await page.locator(".coupon.featured").first().getByText("featured", { exact: true }).isVisible(), true);

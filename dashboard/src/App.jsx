@@ -1,4 +1,4 @@
-import { RefreshCw, Star } from "lucide-react";
+import { RefreshCw, SlidersHorizontal, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { readState, rememberCard } from "./offline.js";
 import CardControl from "./CardControl.jsx";
@@ -384,13 +384,6 @@ export default function App() {
     (e) => e.payload.brand === selectedStore &&
       (account === "all" || e.account_id === account),
   );
-  const countedCoupons = tab === "compare" ? storeCoupons : accountCoupons;
-  const available = countedCoupons.filter(
-    (c) => c.status === "available",
-  ).length;
-  const upcoming = countedCoupons.filter(
-    (c) => c.status === "upcoming",
-  ).length;
   const running = busy || !!activating || data?.running;
   return (
     <>
@@ -546,93 +539,94 @@ export default function App() {
               account={tab === "compare" ? "all" : account}
               onSelect={setStore}
             />
-            <div className="workspace-heading">
-              <nav aria-label="Vistas dos cupões">
-                {[
-                  ["coupons", "Cupões"],
-                  ["compare", "Comparar contas"],
-                  ["history", "Histórico"],
-                ].map(([id, label]) => (
-                  <button
-                    key={id}
-                    className={`tab ${tab === id ? "selected" : ""} ${id === "history" ? "history-tab" : ""}`}
-                    aria-current={tab === id ? "page" : undefined}
-                    onClick={() => setTab(id)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </nav>
-              <p>
-                {available} {available === 1 ? "disponível" : "disponíveis"}
-                <span>·</span> {upcoming} em breve
-              </p>
-            </div>
-            <details className="filter-panel">
-              <summary>Filtros{tab === "history" ? " · Histórico" : ""}</summary>
-              <div className="filters">
-                <label>
-                  Conta
-                  <select
-                    value={account}
-                    onChange={(e) => setAccount(e.target.value)}
-                  >
-                    <option value="all">Todas as contas</option>
-                    {data.accounts.map((a) => (
-                      <option value={a.id} key={a.id}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {tab === "coupons" && (
-                  <>
-                    <label>
-                      Estado
-                      <select
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
-                      >
-                        <option value="current">Atuais e em breve</option>
-                        <option value="new">Novos nas últimas 48h</option>
-                        <option value="expiring">Expiram em 48h</option>
-                        {Object.entries(statuses).map(([key, label]) => (
-                          <option value={key} key={key}>
-                            {label}
-                          </option>
-                        ))}
-                        <option value="all">Todos, incluindo histórico</option>
-                      </select>
-                    </label>
-                    <label>
-                      Expira até
-                      <input
-                        type="date"
-                        value={expiry}
-                        onChange={(e) => setExpiry(e.target.value)}
-                      />
-                    </label>
-                    {expiry && (
-                      <button
-                        className="text-button"
-                        onClick={() => setExpiry("")}
-                      >
-                        Limpar data
-                      </button>
-                    )}
-                  </>
-                )}
-                {tab === "compare" && (
-                  <p>
-                    O filtro Conta define a próxima verificação. A comparação inclui todas as contas.
-                  </p>
-                )}
+            <div className="workspace-controls">
+              <div className="workspace-heading">
+                <nav aria-label="Vistas dos cupões" data-view={tab}>
+                  {[
+                    ["coupons", "Cupões"],
+                    ["compare", "Comparar contas"],
+                    ["history", "Histórico"],
+                  ].map(([id, label]) => (
+                    <button
+                      key={id}
+                      className={`tab ${tab === id ? "selected" : ""} ${id === "history" ? "history-tab" : ""}`}
+                      aria-current={tab === id ? "page" : undefined}
+                      aria-pressed={tab === id}
+                      onClick={() => setTab(id)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </nav>
               </div>
-              <button className="text-button mobile-history" onClick={() => setTab("history")}
-                aria-current={tab === "history" ? "page" : undefined}>
-                Histórico
-              </button>
-            </details>
+              <details className="filter-panel">
+                <summary aria-label="Filtros" title="Filtros">
+                  <SlidersHorizontal size={20} strokeWidth={1.7} aria-hidden="true" />
+                </summary>
+                <div className="filters">
+                  <label>
+                    Conta
+                    <select
+                      value={account}
+                      onChange={(e) => setAccount(e.target.value)}
+                    >
+                      <option value="all">Todas as contas</option>
+                      {data.accounts.map((a) => (
+                        <option value={a.id} key={a.id}>
+                          {a.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {tab === "coupons" && (
+                    <>
+                      <label>
+                        Estado
+                        <select
+                          value={status}
+                          onChange={(e) => setStatus(e.target.value)}
+                        >
+                          <option value="current">Atuais e em breve</option>
+                          <option value="new">Novos nas últimas 48h</option>
+                          <option value="expiring">Expiram em 48h</option>
+                          {Object.entries(statuses).map(([key, label]) => (
+                            <option value={key} key={key}>
+                              {label}
+                            </option>
+                          ))}
+                          <option value="all">Todos, incluindo histórico</option>
+                        </select>
+                      </label>
+                      <label>
+                        Expira até
+                        <input
+                          type="date"
+                          value={expiry}
+                          onChange={(e) => setExpiry(e.target.value)}
+                        />
+                      </label>
+                      {expiry && (
+                        <button
+                          className="text-button"
+                          onClick={() => setExpiry("")}
+                        >
+                          Limpar data
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {tab === "compare" && (
+                    <p>
+                      O filtro Conta define a próxima verificação. A comparação inclui todas as contas.
+                    </p>
+                  )}
+                </div>
+                <button className="text-button mobile-history" onClick={() => setTab("history")}
+                  aria-current={tab === "history" ? "page" : undefined}>
+                  Histórico
+                </button>
+              </details>
+            </div>
             {tab === "coupons" && (
               <section aria-label="Cupões">
                 <div className="list-caption">
@@ -641,7 +635,6 @@ export default function App() {
                     {filtered.length}{" "}
                     {filtered.length === 1 ? "cupão" : "cupões"}
                   </h2>
-                  <span>{filtered.some((c) => isFeatured(c) && c.status === "available") ? "Destaques primeiro" : "Por data de validade"}</span>
                 </div>
                 <div className="coupon-list">
                   {filtered.map((c) => (
