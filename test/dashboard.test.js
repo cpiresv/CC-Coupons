@@ -313,3 +313,56 @@ test("Card activation shows a confirmed per-account timer across reload, sleep, 
     assert.equal(await button.isEnabled(), true);
   } finally { await browser?.close(); await server.close(); }
 });
+
+test("Dashboard fits major responsive widths and keeps euro amounts on one line", async () => {
+  const server = await createServer({ server: { host: "127.0.0.1", port: 0 }, logLevel: "silent" });
+  let browser;
+  try {
+    await server.listen();
+    browser = await chromium.launch({ channel: "chrome", headless: true });
+    const page = await browser.newPage();
+    const accounts = [1, 2, 3].map(id => ({
+      id: `account-${id}`, name: `Conta ${id} ···573`, auth: "ready", source: "android",
+      last_success: "2026-11-07T09:07:00Z", balance: { cents: 2083, checkedAt: "2026-11-07T09:03:00Z" },
+    }));
+    await page.route("**/api/state", route => route.fulfill({ json: {
+      accounts, running: false, notifications: [], events: [],
+      coupons: ["100 €", "100,00 €", "10%"].map((discount, index) => ({
+        accountId: accounts[index].id, brand: "Wells", key: `offer-${index}`,
+        title: "Numa compra de aparelhos auditivos e acessórios nas lojas Wells",
+        description: "Condições completas da oferta", discount, present: true,
+        status: "available", startDate: "2026-10-19", endDate: "2099-11-19",
+      })),
+    } }));
+    await page.goto(`http://127.0.0.1:${server.httpServer.address().port}`);
+    await page.locator(".coupon").first().waitFor();
+    await page.evaluate(() => document.fonts.ready);
+    for (const width of [320, 360, 390, 440, 600, 760, 761, 768, 820, 1024, 1280, 1440, 1920]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const view of ["coupons", "compare", "filters", "details", "history"]) {
+        await page.getByRole("button", { name: view === "compare" ? "Comparar contas" : "Cupões", exact: true }).click();
+        if (view === "history") {
+          await page.locator(".filter-panel").evaluate(element => { element.open = true; });
+          await page.getByRole("button", { name: "Histórico", exact: true }).click();
+        }
+        await page.locator(".filter-panel").evaluate((element, open) => { element.open = open; }, view === "filters");
+        await page.locator(".coupon details").evaluateAll((elements, open) =>
+          elements.forEach(element => { element.open = open; }), view === "details");
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${width}px ${view}`);
+        if (view !== "history") {
+          const fits = await page.locator(".discount strong, .compare-value strong").evaluateAll(elements => elements.every(element => {
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            const text = range.getBoundingClientRect();
+            const badge = (element.closest(".compare-value") || element.parentElement).getBoundingClientRect();
+            return range.getClientRects().length === 1 && text.left >= badge.left - 1 && text.right <= badge.right + 1;
+          }));
+          assert.equal(fits, true, `Discount amounts must fit at ${width}px`);
+        }
+      }
+    }
+  } finally {
+    await browser?.close();
+    await server.close();
+  }
+});

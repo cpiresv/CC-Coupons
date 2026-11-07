@@ -508,7 +508,7 @@ input[type="date"] {
 }
 .coupon {
   display: grid;
-  grid-template-columns: 120px minmax(0, 1fr) 170px;
+  grid-template-columns: 144px minmax(0, 1fr) 170px;
   gap: 24px;
   padding: 26px 20px 26px 0;
   border-bottom: 1px solid var(--line);
@@ -706,7 +706,8 @@ dd {
   font-variant-numeric: tabular-nums;
 }
 .compare-value strong {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
+  white-space: nowrap;
 }
 .compare-value small {
   display: block;
@@ -912,6 +913,7 @@ footer > div {
   }
   .workspace-heading nav[data-view="history"]::before {
     opacity: 0;
+    transform: none;
   }
   .workspace-heading .tab {
     flex: 1;
@@ -937,7 +939,7 @@ footer > div {
     flex: 1 1 135px;
   }
   .coupon {
-    grid-template-columns: 78px minmax(0, 1fr);
+    grid-template-columns: 96px minmax(0, 1fr);
     gap: 12px;
     padding: 20px 12px 20px 0;
   }
@@ -945,8 +947,8 @@ footer > div {
     padding: 4px 8px;
   }
   .discount strong {
-    font-size: 1.65rem;
-    white-space: normal;
+    font-size: 1.3rem;
+    white-space: nowrap;
   }
   .validity {
     grid-column: 2;
@@ -967,6 +969,9 @@ footer > div {
     overflow-wrap: anywhere;
     gap: 14px;
     padding: 20px 16px;
+  }
+  .compare-value strong {
+    font-size: clamp(0.9rem, 3.7vw, 1.4rem);
   }
   .compare-row > div:first-child {
     grid-column: 1/-1;
