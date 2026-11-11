@@ -16,11 +16,17 @@ export function parseBalance(amount) {
   return cents;
 }
 
+function homeScreen(nodes) {
+  const namedScreen = nodes.find((n) => n.text === "HomePage" && visible(n));
+  if (namedScreen || !nodes.some((n) => n["resource-id"] === "TooltipBalance" && visible(n))) return namedScreen;
+  return nodes.find((n) => n.class === "android.webkit.WebView" && visible(n));
+}
+
 export function balanceBounds(nodes) {
   const bounds = (node) => node?.bounds?.match(/^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$/)?.slice(1).map(Number);
   const right = nodes.filter((n) => n["resource-id"] === "Right" && visible(n));
   const region = right.length === 1 && bounds(right[0]);
-  const screen = bounds(nodes.find((n) => n.text === "HomePage" && visible(n)));
+  const screen = bounds(homeScreen(nodes));
   if (!region || !screen || screen[0] !== 0 || screen[1] !== 0 ||
       ![...region, ...screen].every(Number.isSafeInteger) || region[2] <= region[0] || region[3] <= region[1] ||
       region[2] > screen[2] || region[3] > screen[3]) throw new CheckError("BALANCE_UNCONFIRMED");
@@ -28,9 +34,10 @@ export function balanceBounds(nodes) {
 }
 
 export async function readAndroidBalance(device) {
-  const nodes = await device.waitFor((ns) => ns.some((n) => n.text === "HomePage") &&
+  const nodes = await device.waitFor((ns) => homeScreen(ns) &&
     ns.some((n) => n["resource-id"] === "Right" && visible(n)) &&
-    ns.some((n) => n["resource-id"] === "BottomLeft" && n.text?.startsWith("Já ganhou")));
+    ns.some((n) => n["resource-id"] === "BottomLeft" && (n.text || n["content-desc"])?.startsWith("Já ganhou")),
+    { timeout: 90000 });
   const bounds = balanceBounds(nodes);
   prepareData();
   const directory = await mkdtemp(path.join(dataDir, ".balance-"));

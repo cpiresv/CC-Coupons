@@ -131,10 +131,11 @@ test("Store navigation reveals hidden and clipped tabs in both directions, after
   }
 });
 
-function detail(index, total, { code = "10000001", brand = "Continente", discount = "10 %", date = "de 26 de outubro a 8 de novembro de 2026", description = "NUMA COMPRA NO CONTINENTE" } = {}) {
+function detail(index, total, { code = "10000001", brand = "Continente", discount = "10 %", date = "de 26 de outubro a 8 de novembro de 2026", description = "NUMA COMPRA NO CONTINENTE", unlabeled = false } = {}) {
   return [
-    node("", "CouponDetail"),
-    node(`splide9-slide${index}`, `${index} of ${total}`, { bounds: "[63,399][1021,1976]" }),
+    unlabeled ? node("l1-13_0-CouponDetail_WB") : node("", "CouponDetail"),
+    node(`splide9-slide${index}`, unlabeled ? undefined : `${index} of ${total}`, { bounds: "[63,399][1021,1976]" }),
+    ...(unlabeled ? [node("VouchersList")] : []),
     node("l1-13_0-InsigniaImage", brand),
     node("l1-13_0-b8-Image", `Desconto ${discount} em Cartão na marca ${brand}`),
     node("l1-13_0-b9-ConditionsContainer", description),
@@ -165,7 +166,7 @@ test("Android details supply exact codes, future discounts and dates without inv
   assert.equal(layoutNodes([{ content: [{ children: detail(1, 1) }] }]).length, 10);
 });
 
-function fakeDevice({ duplicate = false, wrongTotal = false, ignoredTap = false, partialDetail = false, reordered = false, ignoredBacks = 0, overflowStores = false } = {}) {
+function fakeDevice({ duplicate = false, wrongTotal = false, ignoredTap = false, partialDetail = false, reordered = false, ignoredBacks = 0, overflowStores = false, unlabeled = false } = {}) {
   const stores = overflowStores ? brands : ["Continente", "Galp"];
   const offers = [
     [{ code: "10000001" }, { code: duplicate ? "10000001" : "10000002", discount: "35 %", ...(duplicate ? {} : { date: "de 9 a 19 de novembro de 2026" }) }],
@@ -175,8 +176,8 @@ function fakeDevice({ duplicate = false, wrongTotal = false, ignoredTap = false,
   let screen = "home", store = 0, index = 0, offset = 0, scrollY = 0;
   const taps = [], swipes = [];
   const read = () => screen === "home" ? [node("b30-CouponsLink", "Cupões")]
-    : screen === "details" ? detail(reordered ? offers[store].length - index : index + 1, wrongTotal ? 99 : offers[store].length, offers[store][index])
-      : [node("", "CouponsList"), ...(overflowStores ? storeRow(offset, scrollY) : stores.map((s, i) => node(`l1-1_${i}-SelectInsigniaLink2`, s))),
+    : screen === "details" ? detail(reordered ? offers[store].length - index : index + 1, wrongTotal ? 99 : offers[store].length, { ...offers[store][index], unlabeled })
+      : [unlabeled ? node("InsigniaList") : node("", "CouponsList"), ...(overflowStores ? storeRow(offset, scrollY) : stores.map((s, i) => node(`l1-1_${i}-SelectInsigniaLink2`, s))),
         node("", `Desconto 10 % em Cartão na marca ${stores[store]}`),
         ...offers[store].map((_, i) => node(`l3-2_${i}-seeDetail`, "Saiba mais"))];
   return {
@@ -278,4 +279,10 @@ test("Android collection opens every store's list entries and validates details 
   assert.equal((await collectAndroidCoupons(fakeDevice({ reordered: true }))).length, 3);
   assert.equal((await collectAndroidCoupons(fakeDevice({ ignoredBacks: 2 }))).length, 3);
   await assert.rejects(collectAndroidCoupons(fakeDevice({ ignoredBacks: 3 })), { code: "LAYOUT_CHANGED" });
+});
+
+test("WebView without screen or slide labels still requires every coupon position and complete fields", async () => {
+  const coupons = await collectAndroidCoupons(fakeDevice({ unlabeled: true, partialDetail: true, reordered: true }));
+  assert.deepEqual(coupons.map(coupon => coupon.code), ["10000001", "10000002", "20000001"]);
+  await assert.rejects(collectAndroidCoupons(fakeDevice({ unlabeled: true, ignoredTap: true })), { code: "DUPLICATE_COUPONS" });
 });

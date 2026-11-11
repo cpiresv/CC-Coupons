@@ -96,7 +96,7 @@ The balance is read before coupons, using macOS Vision on the observed balance r
 
 All account checks read the official app's accessibility tree. The same manual check, dashboard button, daily schedule, history, comparison, and Telegram outbox process its coupons. The collector discovers store names from the full accessibility tree, including off-screen tabs. It reveals the store row vertically, then swipes horizontally to reach tabs on either side.
 
-It opens each store's list entries individually, including upcoming coupons, and waits for complete codes, discounts, conditions, and dates. It scrolls links clear of the app's fixed controls before opening them. Navigation attempts are bounded; unreachable tabs fail the check. The detail count must match the list count, and coupon identities must be unique before saving a snapshot. Incomplete or empty results preserve the previous data. It reuses the verified screen layout for visibility checks and reads a fresh layout after scrolling or incomplete positioning.
+It opens each store's list entries individually, including upcoming coupons, and waits for complete codes, discounts, conditions, and dates. It scrolls links clear of the app's fixed controls before opening them. Navigation attempts are bounded. Unreachable tabs fail the check. Every list entry must yield a unique slide position and coupon identity before saving. The carousel total must match the list count when WebView reports it. Incomplete or empty results preserve the previous data. The collector reuses the verified layout and reads a fresh one after scrolling or incomplete positioning.
 
 The fixed Back button uses its verified screen position for a direct tap, avoiding another element lookup. Missing or invalid positions fall back to the Android reader's selector lookup. Scrolling links keep selector-based taps because their reported positions can lag behind the app's transitions. Every navigation still validates the resulting screen.
 
@@ -193,7 +193,7 @@ To inspect the generated property list before installation:
 npm run schedule -- print
 ```
 
-The schedule uses the current absolute Node executable and project path. Reinstall it after moving the project or replacing that Node installation.
+The schedule uses the installed Homebrew formula's stable Node path when available. Other installations use the current absolute Node executable. Reinstall the schedule if the project or that executable moves.
 
 ## What was verified on the actual website
 

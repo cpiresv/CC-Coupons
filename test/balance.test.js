@@ -21,6 +21,10 @@ test("Balance parsing preserves cents and zero and rejects ambiguous or invalid 
   for (const invalid of [null, 0, "", "15.83 €", "15,8 €", "-15,83 €", "15,83", "Já ganhou 517,71 €", "15,83 € 20,00 €", "12.34,56 €", "9007199254740991,00 €"])
     assert.throws(() => parseBalance(invalid), { code: "BALANCE_UNCONFIRMED" });
   assert.deepEqual(balanceBounds(screen), [350, 150, 560, 300, 600, 1000]);
+  const unnamedScreen = { class: "android.webkit.WebView", bounds: screen[0].bounds };
+  assert.deepEqual(balanceBounds([unnamedScreen, { "resource-id": "TooltipBalance" }, ...screen.slice(1)]),
+    [350, 150, 560, 300, 600, 1000]);
+  assert.throws(() => balanceBounds([unnamedScreen, ...screen.slice(1)]), { code: "BALANCE_UNCONFIRMED" });
   for (const altered of [screen.slice(1), [...screen, screen[1]], [screen[0], { ...screen[1], hidden: true }], [screen[0], { ...screen[1], bounds: "[0,0][601,1000]" }]])
     assert.throws(() => balanceBounds(altered), { code: "BALANCE_UNCONFIRMED" });
 });

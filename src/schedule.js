@@ -1,5 +1,6 @@
 import path from "node:path";
 import os from "node:os";
+import { existsSync } from "node:fs";
 import { mkdir, writeFile, unlink } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -31,11 +32,13 @@ const xml = (value) =>
       })[c],
   );
 export function plist() {
+  const formulaNode = process.execPath.replace(/\/Cellar\/(node(?:@\d+)?)\/[^/]+\/bin\/node$/, "/opt/$1/bin/node");
+  const node = existsSync(formulaNode) ? formulaNode : process.execPath;
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>Label</key><string>${label}</string>
-<key>ProgramArguments</key><array><string>${xml(process.execPath)}</string><string>${xml(path.join(root, "src/schedule.js"))}</string><string>tick</string></array>
+<key>ProgramArguments</key><array><string>${xml(node)}</string><string>${xml(path.join(root, "src/schedule.js"))}</string><string>tick</string></array>
 <key>WorkingDirectory</key><string>${xml(root)}</string>
 <key>StartInterval</key><integer>300</integer>
 <key>RunAtLoad</key><true/>

@@ -48,7 +48,7 @@ export function parseAndroidCoupon(nodes, brand) {
     return label(found[0]).trim();
   };
   try {
-    if (!nodes.some((n) => label(n) === "CouponDetail")) throw Error();
+    if (!nodes.some((n) => n["resource-id"]?.endsWith("-CouponDetail_WB") || label(n) === "CouponDetail")) throw Error();
     const code = field("-VoucherCode").match(/^Código:\s*(\d+)$/u)?.[1];
     const description = field("-ConditionsContainer").replace(/\s+/g, " ");
     const amount = field("-Image").match(/^Desconto (\d+(?:[.,]\d+)?)\s*(%|€) em Cartão na marca /u);
@@ -68,11 +68,15 @@ export function parseAndroidCoupon(nodes, brand) {
   }
 }
 
-function carousel(nodes) {
-  const slide = nodes.find((n) => /^splide\d+-slide\d+$/.test(n["resource-id"] || "") && /^\d+ of \d+$/.test(label(n)));
-  const position = slide && label(slide).match(/^(\d+) of (\d+)$/);
-  if (!position) throw new CheckError("LAYOUT_CHANGED");
-  return { index: Number(position[1]), total: Number(position[2]) };
+function carouselPosition(nodes, expected) {
+  const slides = nodes.filter((n) => /^splide\d+-slide\d+$/.test(n["resource-id"] || "") && !n.hidden && !n["off-screen"]);
+  if (slides.length !== 1) return null;
+  const slide = slides[0];
+  const position = label(slide).match(/^(\d+) of (\d+)$/);
+  if (position) return Number(position[2]) === expected ? Number(position[1]) : null;
+  // shortcut: unlabeled slides rely on the store list total, use the carousel total if it becomes accessible again.
+  if (label(slide) || !nodes.some((n) => n["resource-id"] === "VouchersList")) return null;
+  return Number(slide["resource-id"].match(/-slide(\d+)$/)[1]);
 }
 
 export function couponTapRange([, top, , bottom], cardTop) {
@@ -163,14 +167,16 @@ export async function collectAndroidCoupons(device, onProgress = () => {}) {
     nodes = await navigate(device, nodes, tab, (ns) => ns.some((n) => /-seeDetail2?$/.test(n["resource-id"] || "")) && ns.some((n) => label(n).startsWith("Desconto ") && label(n).includes(`na marca ${brand}`)));
     const expected = new Set(nodes.filter((n) => /-seeDetail2?$/.test(n["resource-id"] || "")).map((n) => n["resource-id"])).size;
     if (!expected || expected > 100) throw new CheckError("UNVERIFIED_EMPTY_STATE");
+    const positions = new Set();
     onProgress({ stage: "coupons", brand, read: 0, total: expected });
     for (let index = 0; index < expected; index++) {
       const links = nodes.filter((n) => /-seeDetail2?$/.test(n["resource-id"] || ""));
       if (links.length !== expected) throw new CheckError("LAYOUT_CHANGED");
-      let coupon;
+      let coupon, position;
       nodes = await navigate(device, nodes, links[index], (ns) => {
         try {
-          if (carousel(ns).total !== expected) return false;
+          position = carouselPosition(ns, expected);
+          if (!position || position > expected) return false;
           if (!ns.some((n) => n["resource-id"]?.endsWith("-Back") && label(n) === "Voltar página anterior" && !n.hidden && !n["off-screen"])) return false;
           const insignia = ns.find((n) => n["resource-id"]?.endsWith("-InsigniaImage"));
           if (!insignia || !label(insignia).startsWith(brand)) return false;
@@ -178,10 +184,12 @@ export async function collectAndroidCoupons(device, onProgress = () => {}) {
           return true;
         } catch { return false; }
       });
+      positions.add(position);
       coupons.push(coupon);
       onProgress({ stage: "coupons", brand, read: index + 1, total: expected });
-      nodes = await navigate(device, nodes, nodes.find((n) => n["resource-id"]?.endsWith("-Back") && label(n) === "Voltar página anterior" && !n.hidden && !n["off-screen"]), (ns) => ns.some((n) => label(n) === "CouponsList") && ns.filter((n) => /-seeDetail2?$/.test(n["resource-id"] || "")).length === expected);
+      nodes = await navigate(device, nodes, nodes.find((n) => n["resource-id"]?.endsWith("-Back") && label(n) === "Voltar página anterior" && !n.hidden && !n["off-screen"]), (ns) => ns.some((n) => n["resource-id"] === "InsigniaList" || label(n) === "CouponsList") && ns.filter((n) => /-seeDetail2?$/.test(n["resource-id"] || "")).length === expected);
     }
+    if (positions.size !== expected) throw new CheckError("DUPLICATE_COUPONS");
   }
   if (new Set(coupons.map((c) => c.key)).size !== coupons.length)
     throw new CheckError("DUPLICATE_COUPONS");
