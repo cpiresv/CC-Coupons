@@ -37,7 +37,7 @@ async function until(predicate) {
   assert.fail("Timed out waiting for check progress");
 }
 
-test("all accounts overlap, retain failed data, and notify once after cleanup", async () => {
+test("accounts run one at a time, retain failed data, and notify once after cleanup", async () => {
   const db = openStore(":memory:");
   saveSnapshot(db, "account-2", [coupon]);
   const gates = new Map(ids.map(id => [id, Promise.withResolvers()]));
@@ -46,6 +46,7 @@ test("all accounts overlap, retain failed data, and notify once after cleanup", 
   const progress = new Map(ids.map(id => [id, []]));
   let flushes = 0;
   checkAndroid = async (id, _onBalance, onProgress) => {
+    assert.equal(active.size, 0);
     started.push(id);
     active.add(id);
     onProgress({ stage: "coupons", brand: "Continente", read: 0, total: 1 });
@@ -65,15 +66,18 @@ test("all accounts overlap, retain failed data, and notify once after cleanup", 
     onProgress: (id, step) => progress.get(id).push(step),
   });
   try {
-    await until(() => started.length === 3);
-    assert.deepEqual([...started].sort(), ids);
+    await until(() => started.length === 1);
+    assert.deepEqual(started, ["account-1"]);
     await assert.rejects(runChecks(db), { code: "BUSY" });
-    gates.get("account-3").resolve([coupon]);
-    await until(() => db.prepare("SELECT auth FROM accounts WHERE id='account-3'").get().auth === "ready");
+    gates.get("account-1").resolve([coupon]);
+    await until(() => started.length === 2);
+    assert.deepEqual(started, ["account-1", "account-2"]);
     assert.equal(isBusy(db), true);
     assert.equal(flushes, 0);
     gates.get("account-2").reject(new CheckError("AUTH_REQUIRED"));
-    gates.get("account-1").resolve([coupon]);
+    await until(() => started.length === 3);
+    assert.deepEqual(started, ids);
+    gates.get("account-3").resolve([coupon]);
     const results = await run;
     assert.deepEqual(results, [
       { accountId: "account-1", ok: true, count: 1, changes: 1 },
@@ -119,13 +123,14 @@ test("unexpected worker failure keeps the lock until the other accounts finish",
   const run = runChecks(db);
   const rejected = assert.rejects(run, /simulated storage failure/);
   try {
-    await until(() => started.length === 3);
+    await until(() => started.length === 1);
     gates.get("account-1").reject(new CheckError("LAYOUT_CHANGED"));
     await failed.promise;
-    await delay(0);
+    await until(() => started.length === 2);
     assert.equal(isBusy(db), true);
     await assert.rejects(runChecks(db), { code: "BUSY" });
     gates.get("account-2").resolve([coupon]);
+    await until(() => started.length === 3);
     gates.get("account-3").resolve([coupon]);
     await rejected;
     assert.equal(db.prepare("SELECT count(*) AS n FROM accounts WHERE auth='ready'").get().n, 2);

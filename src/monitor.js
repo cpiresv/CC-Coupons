@@ -53,8 +53,7 @@ export async function runChecks(db, id = "all", { scheduledDay, onProgress = () 
         "INSERT INTO metadata VALUES('scheduled_day',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
       ).run(scheduledDay);
     }
-    // Keep the lock until every device has finished, even if a worker throws.
-    const checks = await Promise.allSettled(selected.map(async (account) => {
+    const checkAccount = async (account) => {
       const progress = (update) => onProgress(account.id, update);
       await log("check_started", account.id, undefined, undefined, account.source);
       let succeeded = false;
@@ -122,11 +121,17 @@ export async function runChecks(db, id = "all", { scheduledDay, onProgress = () 
         );
       }
       throw new Error("CHECK_FAILED");
-    }));
-    const results = checks.map((check) => {
-      if (check.status === "rejected") throw check.reason;
-      return check.value;
-    });
+    };
+    const results = [];
+    let firstFailure;
+    for (const account of selected) {
+      try {
+        results.push(await checkAccount(account));
+      } catch (error) {
+        firstFailure ??= { error };
+      }
+    }
+    if (firstFailure) throw firstFailure.error;
     queueSavedExpiryReminders(db);
     await flushNotifications(db);
     return results;

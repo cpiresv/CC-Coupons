@@ -117,7 +117,7 @@ npm run login -- account-3   # Opens the configured device for manual login
 npm run check -- account-3   # Refreshes the dashboard and dispatches notifications
 ```
 
-Checks start the selected accounts’ devices without windows and close them afterward. Manual and scheduled checks run the selected accounts simultaneously, with separate device storage. Checking all accounts runs three emulators at once and uses more memory than checking one account. The operation lock stays held until every device finishes, and notifications are sent afterward.
+Dashboard, CLI, and scheduled checks process the selected accounts one at a time. Each check closes the emulator it started before moving to the next account. The operation lock covers the full run, and notifications are sent after all selected accounts finish.
 
 The monitor uses host graphics (`-gpu host`). Automatic graphics selection used SwiftShader software rendering for hidden emulators on this Mac, adding substantial CPU load during parallel checks.
 
