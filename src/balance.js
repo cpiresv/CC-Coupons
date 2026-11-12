@@ -34,24 +34,31 @@ export function balanceBounds(nodes) {
 }
 
 export async function readAndroidBalance(device) {
-  const nodes = await device.waitFor((ns) => homeScreen(ns) &&
-    ns.some((n) => n["resource-id"] === "Right" && visible(n)) &&
-    ns.some((n) => n["resource-id"] === "BottomLeft" && (n.text || n["content-desc"])?.startsWith("Já ganhou")),
-    { timeout: 90000 });
-  const bounds = balanceBounds(nodes);
+  let bounds;
+  await device.waitFor((nodes) => {
+    if (!nodes.some((n) => n["resource-id"] === "BottomLeft" && visible(n) &&
+        (n.text || n["content-desc"])?.startsWith("Já ganhou"))) return false;
+    try {
+      bounds = balanceBounds(nodes);
+      return true;
+    } catch (error) {
+      if (error.code !== "BALANCE_UNCONFIRMED") throw error;
+      return false;
+    }
+  }, { timeout: 90000 });
   prepareData();
   const directory = await mkdtemp(path.join(dataDir, ".balance-"));
   try {
     const screenshot = path.join(directory, "screen.png");
     for (let attempt = 0; attempt < 15; attempt++) {
       const checkedAt = new Date().toISOString();
-      await writeFile(screenshot, await device.capture(), { mode: 0o600 });
       try {
+        await writeFile(screenshot, await device.capture(), { mode: 0o600 });
         const { stdout } = await execute("/usr/bin/swift", [path.join(root, "src/read-balance.swift"), screenshot, ...bounds.map(String)], { timeout: 45000, maxBuffer: 4096 });
         return { cents: parseBalance(JSON.parse(stdout).amount), checkedAt };
       } catch (error) {
         if (attempt === 14 || error.killed) throw error;
-        // The balance can finish loading after the home screen becomes accessible.
+        // The screen capture can fail while the balance is still loading.
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }

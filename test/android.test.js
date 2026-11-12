@@ -62,6 +62,26 @@ test("Observed connection-error dialogs retry in the app, with a fixed limit", a
   device.read = async () => offlinePage;
   await assert.rejects(waitForAndroid(device, () => false), { code: "NETWORK_ERROR" });
   assert.equal(taps, 2);
+
+  const offlineRetry = node("b1-Retry_Btn", "Tentar Novamente");
+  const noInternetPage = [
+    node("b1-Title_Div", "Sem ligação à internet"),
+    offlineRetry,
+  ];
+  taps = 0;
+  device.read = async () => taps ? screen : noInternetPage;
+  device.tap = async n => {
+    assert.equal(n, offlineRetry);
+    taps++;
+    throw Object.assign(new CheckError("ANDROID_UNAVAILABLE"), { cause: { stderr: "No matching elements\n" } });
+  };
+  assert.deepEqual(await waitForAndroid(device, ns => ns === screen), screen);
+  assert.equal(taps, 1);
+
+  taps = 0;
+  device.read = async () => noInternetPage;
+  await assert.rejects(waitForAndroid(device, () => false), { code: "NETWORK_ERROR" });
+  assert.equal(taps, 2);
 });
 
 test("Coupon navigation rejects clipped links but permits the last item above fixed controls", () => {

@@ -58,7 +58,11 @@ test("macOS reads the spendable balance region without using lifetime savings or
   try {
     const filename = path.join(directory, "screen.png");
     const device = {
-      async waitFor(predicate) { assert.equal(predicate(screen), true); return screen; },
+      async waitFor(predicate) {
+        assert.equal(predicate([...screen, screen[1]]), false);
+        assert.equal(predicate(screen), true);
+        return screen;
+      },
       capture: () => readFile(filename),
     };
     for (const [amount, cents] of [["15,83 €", 1583], ["0,00 €", 0]]) {
@@ -73,8 +77,11 @@ test("macOS reads the spendable balance region without using lifetime savings or
     await assert.rejects(execute("/usr/bin/swift", ["src/read-balance.swift", filename, ...balanceBounds(screen).map(String)]));
     const loading = await readFile(filename);
     let captures = 0;
-    device.capture = async () => ++captures === 1 ? loading : zero;
+    device.capture = async () => {
+      if (++captures === 1) throw Error("Android screenshot unavailable");
+      return captures === 2 ? loading : zero;
+    };
     assert.equal((await readAndroidBalance(device)).cents, 0);
-    assert.equal(captures, 2);
+    assert.equal(captures, 3);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });

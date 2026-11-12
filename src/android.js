@@ -13,6 +13,8 @@ const execute = promisify(execFile);
 const activity = "pt.continente.ContinenteTelemovel/.MainActivity";
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const label = (node) => node.text || node["content-desc"] || "";
+const missingTarget = (error) => error.code === "ANDROID_UNAVAILABLE" &&
+  /No matching elements/.test(error.cause?.stderr || "");
 
 export function androidTarget(accountId) {
   const port = { "account-1": 5558, "account-2": 5560, "account-3": 5556 }[accountId];
@@ -143,8 +145,7 @@ async function navigate(device, nodes, node, predicate) {
       return await device.waitFor(predicate, { timeout: 15000 });
     }
     catch (error) {
-      const missingTarget = error.code === "ANDROID_UNAVAILABLE" && /No matching elements/.test(error.cause?.stderr || "");
-      if ((error.code !== "LAYOUT_CHANGED" && !missingTarget) || attempt === 2) throw error;
+      if ((error.code !== "LAYOUT_CHANGED" && !missingTarget(error)) || attempt === 2) throw error;
       nodes = await device.read();
       if (predicate(nodes)) return nodes;
       node = nodes.find((n) => n["resource-id"] === node["resource-id"]);
@@ -211,12 +212,14 @@ export async function waitForAndroid(device, predicate, { timeout = 45000, manua
       await pause(500);
       continue;
     }
-    const offlinePage = nodes.some((n) => label(n) === "Ocorreu um erro!") && nodes.some((n) => label(n).startsWith("Mesmo sem ligação"));
+    const offlinePage = nodes.some((n) => label(n) === "Sem ligação à internet") ||
+      (nodes.some((n) => label(n) === "Ocorreu um erro!") && nodes.some((n) => label(n).startsWith("Mesmo sem ligação")));
     if (offlinePage || nodes.some((n) => /Code:\s*\((?:CECE001|OEAE001)\)/i.test(label(n)) && /connection has timed out|Não estamos a conseguir estabelecer ligação/i.test(label(n)))) {
       readError = new CheckError("NETWORK_ERROR");
       const retry = nodes.find((n) => label(n) === "Tentar Novamente" && !n.hidden && !n["off-screen"]);
       if (!retry || networkRetries++ >= 2) throw readError;
-      await device.tap(retry, nodes);
+      try { await device.tap(retry, nodes); }
+      catch (error) { if (!missingTarget(error)) throw error; }
       continue;
     }
     if (predicate(nodes)) return nodes;
@@ -333,11 +336,6 @@ export async function openAndroid(accountId, { headed = false } = {}) {
         const { stdout } = await execute(adbPath, ["-s", serial, "exec-out", "screencap", "-p"], { env, encoding: "buffer", timeout: 10000, maxBuffer: 8 * 1024 * 1024 });
         return stdout;
       },
-      async screenshot() {
-        try {
-          await writeFile(path.join(directory, `${accountId}-last-error.png`), await device.capture(), { mode: 0o600 });
-        } catch {}
-      },
     };
     return device;
   } catch (error) {
@@ -351,18 +349,29 @@ export async function checkAndroid(accountId, onBalance = () => {}, onProgress =
     onBalance(null);
     throw error;
   });
+  const recordError = async (error, suffix) => {
+    const filename = path.join(dataDir, "android", `${accountId}-last-${suffix}`);
+    await writeFile(`${filename}.json`, JSON.stringify({
+      at: new Date().toISOString(),
+      code: error.code ?? error.name,
+      stack: error.stack,
+      detail: error.cause?.stderr ?? error.stderr,
+    }), { mode: 0o600 }).catch(() => {});
+    try {
+      await writeFile(`${filename}.png`, await device.capture(), { mode: 0o600 });
+    } catch {}
+  };
   try {
     onProgress({ stage: "balance" });
     let balance = null;
     try { balance = await readAndroidBalance(device); }
-    catch { await device.screenshot(); }
+    catch (error) { await recordError(error, "balance-error"); }
     onBalance(balance);
     onProgress({ stage: "coupons" });
     return await collectAndroidCoupons(device, onProgress);
   }
   catch (error) {
-    await device.screenshot();
-    await writeFile(path.join(dataDir, "android", `${accountId}-last-error.json`), JSON.stringify({ code: error.code, stack: error.stack, detail: error.cause?.stderr }), { mode: 0o600 }).catch(() => {});
+    await recordError(error, "error");
     throw error;
   }
   finally { await device.close(); }

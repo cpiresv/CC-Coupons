@@ -127,7 +127,7 @@ Emulators started by the monitor use separate virtual networks (`-feature -WiFiP
 
 Cold starts use `-no-snapshot`, preserving installed apps and authentication data. The collector flushes Android storage before shutting down a device it started. Quick Boot previously restored a blank sign-in screen. Local commands disable wireless discovery with `ADB_MDNS=0` because the installed ADB discovery service crashed on this Mac. These settings do not change regular Chrome. Every account keeps separate Android storage.
 
-While waiting for a screen, temporary reader timeouts and missing layout roots retry within the readiness deadline without rebooting the device. The observed `CECE001` and `OEAE001` connection-error dialogs and the app's offline error page share a limit of two “Tentar Novamente” attempts within that deadline. Persistent failures still use the bounded account retry policy.
+While waiting for a screen, temporary reader timeouts and missing layout roots retry within the readiness deadline without rebooting the device. The `CECE001` and `OEAE001` dialogs and the “Ocorreu um erro!” and “Sem ligação à internet” offline screens share a limit of two “Tentar Novamente” attempts within that deadline. Persistent failures still use the bounded account retry policy.
 
 The app does not expose image URLs in its accessibility tree. The dashboard shows the discount text and coupon conditions without an invented image. Activation and usage remain unknown; the collector never selects, activates, archives, or redeems coupons.
 
@@ -227,7 +227,7 @@ Everything private lives under `data/`, ignored by Git. `.env`, build output, br
 - `data/coupons.sqlite`: accounts, snapshots, events, notification outbox, and scheduler state.
 - `data/checks.log`: timestamps, account IDs, safe status codes, counts, and collection source (`android` for the configured accounts).
 - `data/debug/`: failure screenshots, with headers, account sidebar, form fields, and login frames masked. At most 20 generated failure screenshots are retained. Treat all screenshots as private.
-- `data/android/`: private emulator storage and logs. `account-N-last-error.png` retains each account’s latest Android failure screenshot; it may contain account information. The matching `.json` file records the error code and stack. Temporary accessibility captures are removed after each check.
+- `data/android/`: private emulator storage and logs. The `account-N-last-error` and `account-N-last-balance-error` files retain separate diagnostics for coupon and balance failures. The PNGs may contain account information. The JSON files record the time, error code, and stack. Temporary accessibility captures are removed after each check.
 - `data/launchd.log` and `data/launchd-error.log`: scheduled process output.
 
 If the portal changes, keep the previous database, inspect the authenticated page, and update the extractor and its tests. A failed check never confirms an empty inventory.
