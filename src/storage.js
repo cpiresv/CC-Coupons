@@ -5,6 +5,9 @@ import path from "node:path";
 import { accounts, dataDir, prepareData } from "./config.js";
 import { couponStatus, expiring } from "./dates.js";
 
+const euros = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" });
+const signedEuros = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", signDisplay: "always" });
+
 export function openStore(filename = path.join(dataDir, "coupons.sqlite")) {
   if (filename !== ":memory:") prepareData();
   const db = new DatabaseSync(filename);
@@ -58,8 +61,15 @@ export function saveBalance(db, accountId, balance) {
     const previous = db.prepare("SELECT cents,checked_at FROM account_balances WHERE account_id=?").get(accountId);
     if (previous?.checked_at && Date.parse(previous.checked_at) >= Date.parse(balance.checkedAt)) return;
     if (previous?.cents != null && previous.cents !== balance.cents) {
-      db.prepare("INSERT INTO balance_changes(account_id,previous_cents,cents,checked_at) VALUES(?,?,?,?)")
+      const change = db.prepare("INSERT INTO balance_changes(account_id,previous_cents,cents,checked_at) VALUES(?,?,?,?)")
         .run(accountId, previous.cents, balance.cents, balance.checkedAt);
+      const { name } = db.prepare("SELECT name FROM accounts WHERE id=?").get(accountId);
+      // Pass decimal strings to preserve cents without floating-point rounding.
+      const delta = signedEuros.format(`${balance.cents - previous.cents}e-2`);
+      const newBalance = euros.format(`${balance.cents}e-2`);
+      enqueue(db, `balance:${change.lastInsertRowid}`,
+        `${name} · Saldo em cartão\nVariação: ${delta}\nNovo saldo: ${newBalance}`,
+        new Date(balance.checkedAt));
     }
     db.prepare("INSERT INTO account_balances VALUES(?,?,?,0) ON CONFLICT(account_id) DO UPDATE SET cents=excluded.cents,checked_at=excluded.checked_at,error=0")
       .run(accountId, balance.cents, balance.checkedAt);

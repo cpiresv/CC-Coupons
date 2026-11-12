@@ -53,18 +53,20 @@ test("Balances remain isolated and keep their amount and timestamp through faile
   } finally { db.close(); }
 });
 
-test("Balance history records only confirmed changes from each account's saved amount", () => {
+test("Only confirmed changes from each account's saved balance create history and alerts", () => {
   const db = openStore(":memory:");
   const at = (day) => `2026-11-${day}T09:00:00.000Z`;
   const save = (accountId, cents, day) => saveBalance(db, accountId, { cents, checkedAt: at(day) });
   const history = () => dashboardData(db).balanceChanges.map(({ id, ...change }) => change);
   try {
+    db.exec("UPDATE accounts SET name='Conta 1' WHERE id='account-1'; UPDATE accounts SET name='Conta 2' WHERE id='account-2'");
     db.prepare("INSERT INTO account_balances(account_id,cents,checked_at) VALUES(?,?,?)")
       .run("account-1", 0, at(10));
     saveBalance(db, "account-2", null);
     save("account-2", 900, 11);
     save("account-1", 0, 11);
     assert.deepEqual(history(), []);
+    assert.deepEqual(dashboardData(db).notifications, []);
     assert.equal(dashboardData(db).accounts[0].balance.checkedAt, at(11));
 
     save("account-1", 555, 12);
@@ -80,6 +82,12 @@ test("Balance history records only confirmed changes from each account's saved a
       { accountId: "account-1", previousCents: 0, cents: 555, checkedAt: at(12) },
     ]);
     assert.equal(dashboardData(db).accounts[0].balance.cents, 300);
+    const alerts = db.prepare("SELECT id,message FROM outbox WHERE state='pending' ORDER BY rowid").all();
+    assert.deepEqual(alerts.map(alert => [alert.id, alert.message.replaceAll("\u00a0", " ")]), [
+      ["balance:1", "Conta 1 · Saldo em cartão\nVariação: +5,55 €\nNovo saldo: 5,55 €"],
+      ["balance:2", "Conta 2 · Saldo em cartão\nVariação: -9,00 €\nNovo saldo: 0,00 €"],
+      ["balance:3", "Conta 1 · Saldo em cartão\nVariação: -2,55 €\nNovo saldo: 3,00 €"],
+    ]);
   } finally { db.close(); }
 });
 

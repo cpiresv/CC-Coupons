@@ -165,6 +165,8 @@ TELEGRAM_CHAT_ID=your-chat-id
 
 New and changed coupons, returns, expiry within 48 hours, authentication failures, and three consecutive failed checks generate notifications. The first successful snapshot counts its offers as new. Names identify accounts in every message. Removed offers are recorded in history without an extra notification. If a refresh fails, expiry reminders still use the last confirmed snapshot and explicitly warn that current availability is unverified.
 
+A confirmed balance change sends the account name, the signed change in euros, and the new balance to the configured Telegram chat. A first reading establishes the balance for comparison. An unchanged or unreadable balance generates no balance notification.
+
 The SQLite outbox deduplicates messages. Missing credentials leave messages pending. Telegram-confirmed sends are marked sent. Explicit transient rejection receives at most three attempts on subsequent checks. A timeout or a crash after dispatch makes delivery uncertain: the program retains the message for review and does not blindly resend it. Telegram has no send-message idempotency key, so guaranteed delivery and absolute duplicate prevention cannot both be promised after a lost response.
 
 Inspect delivery state without displaying tokens:

@@ -218,12 +218,16 @@ test("Daily checks save balances independently from coupon success, and manual c
   const db = openStore(":memory:");
   const checkedAt = new Date().toISOString();
   saveBalance(db, "account-2", { cents: 1234, checkedAt: "2026-11-05T09:00:00.000Z" });
+  saveBalance(db, "account-3", { cents: 10000, checkedAt: "2026-11-05T09:00:00.000Z" });
   checkAndroid = async (id, onBalance) => {
     onBalance(id === "account-2" ? null : { cents: id === "account-1" ? 0 : 9876, checkedAt });
     if (id === "account-3") throw new CheckError("LAYOUT_CHANGED");
     return [coupon];
   };
-  flushNotifications = async () => {};
+  const balanceAlerts = [];
+  flushNotifications = async (store) => {
+    balanceAlerts.push(store.prepare("SELECT COUNT(*) AS count FROM outbox WHERE id LIKE 'balance:%'").get().count);
+  };
   try {
     const results = await runChecks(db, "all", { scheduledDay: "2026-11-06" });
     assert.deepEqual(results.map(result => result.ok), [true, true, false]);
@@ -237,5 +241,6 @@ test("Daily checks save balances independently from coupon success, and manual c
     await runChecks(db, "account-2");
     assert.equal(dashboardData(db).accounts[1].balance.cents, 5678);
     assert.equal(dashboardData(db).accounts[1].balance.error, 0);
+    assert.deepEqual(balanceAlerts, [1, 2]);
   } finally { db.close(); }
 });
