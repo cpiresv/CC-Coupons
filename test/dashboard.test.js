@@ -42,6 +42,10 @@ test("Store selection keeps coupons, comparison, history and account filters ali
         offer("KFC", "account-3", "k1"),
         offer("Pans & Company", "account-1", "pc1"),
       ],
+      balanceChanges: [
+        { id: 2, accountId: "account-1", previousCents: 1083, cents: 1583, checkedAt: "2026-11-04T11:58:00Z" },
+        { id: 1, accountId: "account-2", previousCents: 125, cents: 0, checkedAt: "2026-11-03T09:00:00Z" },
+      ],
       notifications: [], running: false, telegramConfigured: false, dailyTime: "09:00",
     };
     state.events = state.coupons.map((coupon, id) => ({
@@ -139,11 +143,19 @@ test("Store selection keeps coupons, comparison, history and account filters ali
     assert.equal((await page.locator(".compare-value").filter({hasText: "Conta 3"}).locator("strong").textContent()).trim(), "10 cênt./L");
     await page.getByRole("button", { name: "Histórico", exact: true }).click();
     await page.getByRole("heading", { name: "Últimas alterações · Galp" }).waitFor();
-    assert.equal(await page.locator(".history article").count(), 0);
+    const couponHistory = page.getByRole("region", { name: "Histórico de alterações" });
+    const balanceHistory = page.getByRole("region", { name: "Alterações de saldo" });
+    assert.equal(await couponHistory.locator("article").count(), 0);
+    assert.deepEqual((await balanceHistory.locator("h3").allTextContents()).map(text => text.replace(/\s/g, " ")),
+      ["Conta 1 · +5,00 €"]);
+    assert.match(await balanceHistory.locator("p").innerText(), /De 10,83\s€ para 15,83\s€/);
     await page.getByRole("combobox", { name: /^Conta/ }).selectOption("all");
-    await page.locator(".history article").waitFor();
-    assert.deepEqual(await page.locator(".history article h3").allTextContents(), ["desconto galp/continente 10 cent/lt em cartao continente"]);
-    assert.match(await page.locator(".history article p").textContent(), /10 cênt\.\/L/);
+    assert.deepEqual((await balanceHistory.locator("h3").allTextContents()).map(text => text.replace(/\s/g, " ")),
+      ["Conta 1 · +5,00 €", "Conta 2 · -1,25 €"]);
+    assert.equal(await balanceHistory.locator("time").first().getAttribute("datetime"), "2026-11-04T11:58:00Z");
+    await couponHistory.locator("article").waitFor();
+    assert.deepEqual(await couponHistory.locator("article h3").allTextContents(), ["desconto galp/continente 10 cent/lt em cartao continente"]);
+    assert.match(await couponHistory.locator("article p").textContent(), /10 cênt\.\/L/);
 
     await page.getByRole("button", { name: "Cupões", exact: true }).click();
     await stores.getByRole("button", { name: "Wells", exact: true }).click();

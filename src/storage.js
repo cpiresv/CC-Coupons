@@ -16,6 +16,7 @@ export function openStore(filename = path.join(dataDir, "coupons.sqlite")) {
     CREATE TABLE IF NOT EXISTS operation_lock (id INTEGER PRIMARY KEY CHECK(id=1), pid INTEGER NOT NULL, owner TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS card_sessions (account_id TEXT PRIMARY KEY REFERENCES accounts(id), expires_at INTEGER NOT NULL, image BLOB NOT NULL);
     CREATE TABLE IF NOT EXISTS account_balances (account_id TEXT PRIMARY KEY REFERENCES accounts(id), cents INTEGER CHECK(cents>=0), checked_at TEXT, error INTEGER NOT NULL DEFAULT 0);
+    CREATE TABLE IF NOT EXISTS balance_changes (id INTEGER PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(id), previous_cents INTEGER NOT NULL CHECK(previous_cents>=0), cents INTEGER NOT NULL CHECK(cents>=0 AND cents<>previous_cents), checked_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);`);
   if (filename !== ":memory:") chmodSync(filename, 0o600);
   for (const a of accounts)
@@ -53,8 +54,16 @@ export function saveBalance(db, accountId, balance) {
   if (!Number.isSafeInteger(balance?.cents) || balance.cents < 0 ||
       typeof balance.checkedAt !== "string" || !Number.isFinite(Date.parse(balance.checkedAt)))
     throw new Error("INVALID_BALANCE");
-  db.prepare("INSERT INTO account_balances VALUES(?,?,?,0) ON CONFLICT(account_id) DO UPDATE SET cents=excluded.cents,checked_at=excluded.checked_at,error=0")
-    .run(accountId, balance.cents, balance.checkedAt);
+  transaction(db, () => {
+    const previous = db.prepare("SELECT cents,checked_at FROM account_balances WHERE account_id=?").get(accountId);
+    if (previous?.checked_at && Date.parse(previous.checked_at) >= Date.parse(balance.checkedAt)) return;
+    if (previous?.cents != null && previous.cents !== balance.cents) {
+      db.prepare("INSERT INTO balance_changes(account_id,previous_cents,cents,checked_at) VALUES(?,?,?,?)")
+        .run(accountId, previous.cents, balance.cents, balance.checkedAt);
+    }
+    db.prepare("INSERT INTO account_balances VALUES(?,?,?,0) ON CONFLICT(account_id) DO UPDATE SET cents=excluded.cents,checked_at=excluded.checked_at,error=0")
+      .run(accountId, balance.cents, balance.checkedAt);
+  });
 }
 export function saveSnapshot(db, accountId, coupons, now = new Date()) {
   if (!Array.isArray(coupons) || !coupons.length)
@@ -226,6 +235,9 @@ export function dashboardData(db, now = new Date()) {
       balance: db.prepare("SELECT cents,checked_at AS checkedAt,error FROM account_balances WHERE account_id=?").get(account.id) || null,
     })),
     coupons,
+    balanceChanges: db.prepare(
+      "SELECT id,account_id AS accountId,previous_cents AS previousCents,cents,checked_at AS checkedAt FROM balance_changes ORDER BY id DESC LIMIT 200",
+    ).all(),
     events: db
       .prepare("SELECT * FROM events ORDER BY id DESC LIMIT 200")
       .all()

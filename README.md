@@ -24,7 +24,7 @@ Open <http://127.0.0.1:4310> on the host Mac. For another device on the same loc
 
 When `TAILSCALE_HOST` is configured, the server instead listens only on localhost. Use the private HTTPS address described below from your phone.
 
-Do not replace an existing `.env`. Account names, port, browser channel, headless mode, and daily time are configurable there. Restart the dashboard after changing `.env`; each scheduled process reads it afresh.
+Do not replace an existing `.env`. Account names, port, browser channel, headless mode, and daily time are configurable there. Restart the dashboard after changing `.env`. Reinstall the daily LaunchAgent if the scheduled time changes.
 
 ## Phone installation through Tailscale
 
@@ -91,6 +91,8 @@ The official app does not expose the timer as accessible text. `src/read-card.sw
 ### Coupon collection
 
 Daily and manual checks also read each account's spendable balance from the official app's home screen. The dashboard shows **Saldo em cartão** with the balance's own verification time, including in its saved offline copy. This is the recorded balance, not a live total after purchases.
+
+**Histórico → Alterações de saldo** shows the detected increases and decreases, the previous and new balances, and the check time. Each account starts from its last saved balance or its first confirmed reading. Only changes between successful readings are recorded. The dashboard shows the latest 200 balance changes, and SQLite retains the full history.
 
 The balance is read before coupons, using macOS Vision on the observed balance region. Lifetime savings (**Já ganhou**) and coupon discounts are excluded. An unreadable balance preserves the previous amount and timestamp, displays a failed-update message, and lets coupon collection continue. A later coupon failure does not discard a balance already confirmed during that check.
 
@@ -181,9 +183,9 @@ npm run schedule -- status
 npm run schedule -- uninstall
 ```
 
-Set `DAILY_CHECK_TIME=09:00` in `.env` to choose a daily time in **Europe/Lisbon**.
+Set `DAILY_CHECK_TIME=09:00` in `.env` and run `npm run schedule -- install` to set the daily trigger. macOS uses the Mac's local clock for the trigger. The app uses Lisbon time for the daily guard, which matches the Mac's Madeira time zone.
 
-The LaunchAgent is `local.cc-coupons.daily`. It starts a lightweight Node gate every five minutes. The gate checks the configured Android accounts only once per Lisbon day, at or after the configured time. This avoids relying on the Mac's system timezone for launchd calendar matching. It catches up after waking or logging in; it does not wake a sleeping Mac or run while the user is logged out. Changing the time takes effect on the next tick; a day already attempted is not repeated automatically.
+The LaunchAgent is `local.cc-coupons.daily`. Its calendar trigger fires at the configured time and catches up when the Mac wakes from sleep. The agent also checks at login and skips any day it already attempted. If another operation holds the lock, the scheduler retries once a minute for up to 15 minutes.
 
 Checks that fail consume that day's scheduled attempt. The monitor retries transient failures inside the check, preserves previous data, and sends a repeated-failure alert after three failed checks. Manual checks remain available.
 

@@ -18,8 +18,9 @@ mock.module("../src/notifications.js", {
   namedExports: { flushNotifications: (...args) => flushNotifications(...args) },
 });
 const { runChecks } = await import("../src/monitor.js");
+const { runScheduledChecks } = await import("../src/schedule.js");
 const { openStore, saveSnapshot, saveBalance, dashboardData } = await import("../src/storage.js");
-const { isBusy } = await import("../src/lock.js");
+const { acquireLock, isBusy } = await import("../src/lock.js");
 const { CheckError, normalizeCoupon } = await import("../src/extraction.js");
 const ids = ["account-1", "account-2", "account-3"];
 const coupon = normalizeCoupon({
@@ -183,6 +184,31 @@ test("a temporary Android control failure retries without manual login", async (
     assert.equal(db.prepare("SELECT failures FROM accounts WHERE id='account-2'").get().failures, 0);
     assert.equal(isBusy(db), false);
   } finally {
+    t.mock.timers.reset();
+    db.close();
+  }
+});
+
+test("the scheduled check retries a busy lock and still runs only once per day", async (t) => {
+  const db = openStore(":memory:");
+  const release = acquireLock(db);
+  const started = [];
+  checkAndroid = async id => { started.push(id); return [coupon]; };
+  flushNotifications = async () => {};
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const run = runScheduledChecks(db);
+  run.catch(() => {});
+  try {
+    await new Promise(setImmediate);
+    release();
+    t.mock.timers.tick(59_999);
+    assert.deepEqual(started, []);
+    t.mock.timers.tick(1);
+    assert.equal((await run).length, 3);
+    assert.deepEqual(started, ids);
+    assert.deepEqual(await runScheduledChecks(db), []);
+  } finally {
+    release();
     t.mock.timers.reset();
     db.close();
   }

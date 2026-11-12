@@ -314,8 +314,11 @@ test("Scheduler uses Lisbon wall time including DST and generates a valid launch
   assert.equal(due(new Date("2026-07-01T08:00:00Z"), "09:00"), true);
   assert.equal(due(new Date("2026-11-01T08:59:00Z"), "09:00"), false);
   assert.throws(() => due(now, "25:00"));
-  assert.match(plist(), /StartInterval/);
-  assert.match(plist(), /300/);
+  assert.throws(() => plist("09:60"), /DAILY_CHECK_TIME/);
+  const definition = plist("17:05");
+  assert.match(definition, /<key>StartCalendarInterval<\/key><dict><key>Hour<\/key><integer>17<\/integer><key>Minute<\/key><integer>5<\/integer><\/dict>/);
+  assert.match(definition, /<key>RunAtLoad<\/key><true\/>/);
+  assert.doesNotMatch(definition, /<key>StartInterval<\/key>/);
 });
 test("LAN and Tailscale API accepts this Mac's addresses and rejects foreign hosts, origins, invalid accounts and concurrent checks", async (t) => {
   t.mock.method(os, "networkInterfaces", () => ({

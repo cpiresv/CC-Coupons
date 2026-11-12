@@ -53,6 +53,36 @@ test("Balances remain isolated and keep their amount and timestamp through faile
   } finally { db.close(); }
 });
 
+test("Balance history records only confirmed changes from each account's saved amount", () => {
+  const db = openStore(":memory:");
+  const at = (day) => `2026-11-${day}T09:00:00.000Z`;
+  const save = (accountId, cents, day) => saveBalance(db, accountId, { cents, checkedAt: at(day) });
+  const history = () => dashboardData(db).balanceChanges.map(({ id, ...change }) => change);
+  try {
+    db.prepare("INSERT INTO account_balances(account_id,cents,checked_at) VALUES(?,?,?)")
+      .run("account-1", 0, at(10));
+    saveBalance(db, "account-2", null);
+    save("account-2", 900, 11);
+    save("account-1", 0, 11);
+    assert.deepEqual(history(), []);
+    assert.equal(dashboardData(db).accounts[0].balance.checkedAt, at(11));
+
+    save("account-1", 555, 12);
+    saveBalance(db, "account-1", null);
+    save("account-2", 0, 13);
+    save("account-1", 300, 13);
+    save("account-1", 300, 13);
+    save("account-1", 555, 12);
+
+    assert.deepEqual(history(), [
+      { accountId: "account-1", previousCents: 555, cents: 300, checkedAt: at(13) },
+      { accountId: "account-2", previousCents: 900, cents: 0, checkedAt: at(13) },
+      { accountId: "account-1", previousCents: 0, cents: 555, checkedAt: at(12) },
+    ]);
+    assert.equal(dashboardData(db).accounts[0].balance.cents, 300);
+  } finally { db.close(); }
+});
+
 test("macOS reads the spendable balance region without using lifetime savings or inventing zero", { skip: process.platform !== "darwin" }, async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "cc-balance-test-"));
   try {

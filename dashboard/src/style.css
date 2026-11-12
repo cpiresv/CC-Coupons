@@ -774,6 +774,9 @@ dd {
 .history > h2 {
   margin-bottom: 8px;
 }
+.history + .history {
+  margin-top: 32px;
+}
 .history article {
   display: grid;
   grid-template-columns: 160px 1fr;

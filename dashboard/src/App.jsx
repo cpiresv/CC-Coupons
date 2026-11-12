@@ -4,6 +4,10 @@ import { readState, rememberCard } from "./offline.js";
 import CardControl from "./CardControl.jsx";
 
 const euros = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" });
+const signedEuros = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", signDisplay: "always" });
+const balanceDate = new Intl.DateTimeFormat("pt-PT", {
+  dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Lisbon",
+});
 
 const storeLogos = {
   Continente: "/stores/continente.png",
@@ -67,6 +71,26 @@ const instant = (value) =>
         timeZone: "Europe/Lisbon",
       }).format(new Date(value))
     : "Ainda não verificada";
+function BalanceHistory({ changes, account, accountName }) {
+  const visibleChanges = changes.filter((change) => account === "all" || change.accountId === account);
+  return (
+    <section className="history" aria-labelledby="balance-history-title">
+      <h2 id="balance-history-title">Alterações de saldo</h2>
+      {changes.length === 200 ? (
+        <p className="fine-print">As 200 alterações de saldo mais recentes entre todas as contas.</p>
+      ) : null}
+      {visibleChanges.length ? visibleChanges.map((change) => (
+        <article key={change.id}>
+          <time dateTime={change.checkedAt}>{balanceDate.format(new Date(change.checkedAt))}</time>
+          <div>
+            <h3>{accountName(change.accountId)} · {signedEuros.format((change.cents - change.previousCents) / 100)}</h3>
+            <p>De {euros.format(change.previousCents / 100)} para {euros.format(change.cents / 100)}</p>
+          </div>
+        </article>
+      )) : <p className="empty">Ainda não existem alterações de saldo registadas para esta seleção.</p>}
+    </section>
+  );
+}
 function Icon({ name }) {
   const paths = {
     arrow: "M5 12h14 M13 6l6 6-6 6",
@@ -698,6 +722,9 @@ export default function App() {
             )}
             {tab === "compare" && (
               <Comparison coupons={storeCoupons} accounts={data.accounts} />
+            )}
+            {tab === "history" && (
+              <BalanceHistory changes={data.balanceChanges || []} account={account} accountName={accountName} />
             )}
             {tab === "history" && (
               <section aria-label="Histórico de alterações" className="history">
