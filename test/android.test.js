@@ -84,6 +84,50 @@ test("Observed connection-error dialogs retry in the app, with a fixed limit", a
   assert.equal(taps, 2);
 });
 
+test("Rating popups close before covered controls count as ready, without submitting a rating", async () => {
+  const screen = [node("b30-CouponsLink", "Cupões")];
+  const title = node("b34-b11-b1-b1-Title", "AJUDE-NOS A MELHORAR");
+  const close = { "content-desc": "fechar avaliação", interactions: ["CLICKABLE", "FOCUSABLE"] };
+  const popup = [...screen, title, close, node("b34-b11-b1-b1-Buttons", "Avaliar")];
+  let taps = 0, predicates = 0;
+  const device = {
+    read: async () => taps ? screen : popup,
+    tap: async (n, nodes) => { assert.equal(n, close); assert.equal(nodes, popup); taps++; },
+  };
+  const ready = ns => { predicates++; return ns.some(n => n.text === "Cupões"); };
+  assert.equal(await waitForAndroid(device, ready), screen);
+  assert.equal(taps, 1);
+  assert.equal(predicates, 1);
+
+  taps = 0; predicates = 0;
+  device.read = async () => popup;
+  await assert.rejects(waitForAndroid(device, ready), { code: "LAYOUT_CHANGED" });
+  assert.equal(taps, 2);
+  assert.equal(predicates, 0);
+
+  for (const controls of [[], [close, close], [{ ...close, hidden: true }], [{ ...close, "off-screen": true }], [{ ...close, interactions: [] }]]) {
+    device.read = async () => [...screen, title, ...controls];
+    device.tap = async () => assert.fail("An absent or ambiguous close control must not be tapped");
+    await assert.rejects(waitForAndroid(device, ready), { code: "LAYOUT_CHANGED" });
+  }
+
+  const hiddenPopup = [...screen, { ...title, hidden: true }, close];
+  device.read = async () => hiddenPopup;
+  assert.equal(await waitForAndroid(device, ready), hiddenPopup);
+  const unrelated = [...screen, node("other-Title", "Another dialog"), close];
+  device.read = async () => unrelated;
+  assert.equal(await waitForAndroid(device, ready), unrelated);
+
+  taps = 0;
+  device.read = async () => taps ? screen : popup;
+  device.tap = async () => {
+    taps++;
+    throw Object.assign(new CheckError("ANDROID_UNAVAILABLE"), { cause: { stderr: "No matching elements\n" } });
+  };
+  assert.equal(await waitForAndroid(device, ready), screen);
+  assert.equal(taps, 1);
+});
+
 test("Coupon navigation rejects clipped links but permits the last item above fixed controls", () => {
   const range = couponTapRange([0, 252, 1082, 2402], 1981);
   const safe = (y) => y > range[0] && y < range[1];

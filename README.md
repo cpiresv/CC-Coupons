@@ -131,6 +131,8 @@ Cold starts use `-no-snapshot`, preserving installed apps and authentication dat
 
 While waiting for a screen, temporary reader timeouts and missing layout roots retry within the readiness deadline without rebooting the device. The `CECE001` and `OEAE001` dialogs and the “Ocorreu um erro!” and “Sem ligação à internet” offline screens share a limit of two “Tentar Novamente” attempts within that deadline. Persistent failures still use the bounded account retry policy.
 
+The reader closes the observed “AJUDE-NOS A MELHORAR” rating popup through its “fechar avaliação” control before accepting the covered screen as ready. It never selects stars or submits a rating. Closing is limited to two attempts per readiness wait; an absent or ambiguous close control fails safely.
+
 The app does not expose image URLs in its accessibility tree. The dashboard shows the discount text and coupon conditions without an invented image. Activation and usage remain unknown; the collector never selects, activates, archives, or redeems coupons.
 
 On 5 November 2026, Account 3 retained its login after an app restart and a cold emulator restart without manual login or SMS. The app showed 18 current coupons across Continente (3), Galp (5), Wells (9), and Pizza Hut (1), plus 6 upcoming Continente coupons. An initial empty view resolved after restarting the app. A dashboard-triggered check then opened the emulator, saved all 24 unique coupons, and closed the emulator automatically. Telegram confirmed all 24 new-coupon notifications. Mobile and desktop dashboard views were verified. Idle retention remains untested; restart success does not guarantee permanent authentication.

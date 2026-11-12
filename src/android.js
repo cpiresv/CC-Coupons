@@ -199,7 +199,7 @@ export async function collectAndroidCoupons(device, onProgress = () => {}) {
 
 export async function waitForAndroid(device, predicate, { timeout = 45000, manualLogin = false } = {}) {
   const until = Date.now() + timeout;
-  let readError, networkRetries = 0;
+  let readError, networkRetries = 0, ratingDismissals = 0;
   while (Date.now() < until) {
     let nodes;
     try {
@@ -210,6 +210,15 @@ export async function waitForAndroid(device, predicate, { timeout = 45000, manua
           /Could not obtain layout root/.test(error.cause?.stderr || ""))) throw error;
       readError = error;
       await pause(500);
+      continue;
+    }
+    // The rating popup leaves the covered home controls in the accessibility tree.
+    if (nodes.some((n) => label(n) === "AJUDE-NOS A MELHORAR" && !n.hidden && !n["off-screen"])) {
+      const close = nodes.filter((n) => n["content-desc"] === "fechar avaliação" &&
+        n.interactions?.includes("CLICKABLE") && !n.hidden && !n["off-screen"]);
+      if (close.length !== 1 || ratingDismissals++ >= 2) throw new CheckError("LAYOUT_CHANGED");
+      try { await device.tap(close[0], nodes); }
+      catch (error) { if (!missingTarget(error)) throw error; }
       continue;
     }
     const offlinePage = nodes.some((n) => label(n) === "Sem ligação à internet") ||
@@ -310,6 +319,8 @@ export async function openAndroid(accountId, { headed = false } = {}) {
       },
       waitFor: (predicate, options) => waitForAndroid(device, predicate, options),
       async tap(node, nodes) {
+        if (node?.["content-desc"] === "fechar avaliação" && node.interactions?.includes("CLICKABLE") && !node.hidden && !node["off-screen"])
+          return android(["input", `--device=${serial}`, "tap", "--wait=10000", "desc=/^fechar avaliação$/,clickable=true"]);
         if (!node || !/^[\w:/-]+$/.test(node["resource-id"] || "")) throw new CheckError("LAYOUT_CHANGED");
         const id = node["resource-id"];
         const listLink = /-(seeDetail2?|SelectInsigniaLink2)$/.test(id);
