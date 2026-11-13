@@ -35,7 +35,7 @@ export function balanceBounds(nodes) {
 
 export async function readAndroidBalance(device) {
   let bounds;
-  await device.waitFor((nodes) => {
+  const waitForBalance = (timeout = 90000) => device.waitFor((nodes) => {
     if (!nodes.some((n) => n["resource-id"] === "BottomLeft" && visible(n) &&
         (n.text || n["content-desc"])?.startsWith("Já ganhou"))) return false;
     try {
@@ -45,21 +45,24 @@ export async function readAndroidBalance(device) {
       if (error.code !== "BALANCE_UNCONFIRMED") throw error;
       return false;
     }
-  }, { timeout: 90000 });
+  }, { timeout });
+  await waitForBalance();
   prepareData();
   const directory = await mkdtemp(path.join(dataDir, ".balance-"));
   try {
     const screenshot = path.join(directory, "screen.png");
-    for (let attempt = 0; attempt < 15; attempt++) {
+    const until = Date.now() + 90000;
+    for (;;) {
       const checkedAt = new Date().toISOString();
       try {
         await writeFile(screenshot, await device.capture(), { mode: 0o600 });
         const { stdout } = await execute("/usr/bin/swift", [path.join(root, "src/read-balance.swift"), screenshot, ...bounds.map(String)], { timeout: 45000, maxBuffer: 4096 });
         return { cents: parseBalance(JSON.parse(stdout).amount), checkedAt };
       } catch (error) {
-        if (attempt === 14 || error.killed) throw error;
+        if (Date.now() >= until || error.killed) throw error;
         // The screen capture can fail while the balance is still loading.
         await new Promise(resolve => setTimeout(resolve, 2000));
+        await waitForBalance(Math.max(1, until - Date.now()));
       }
     }
   } finally { await rm(directory, { recursive: true, force: true }); }

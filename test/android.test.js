@@ -84,6 +84,24 @@ test("Observed connection-error dialogs retry in the app, with a fixed limit", a
   assert.equal(taps, 2);
 });
 
+test("An observed app update gets a bounded wait and cannot make covered controls count as ready", async t => {
+  t.mock.timers.enable({ apis: ["Date", "setTimeout"], now: 1000 });
+  const home = [node("b30-CouponsLink", "Cupões")];
+  const updating = [...home, node("update", "ESTAMOS A ATUALIZAR A SUA APLICAÇÃO"), node("wait", "POR FAVOR AGUARDE.")];
+  let reads = 0;
+  const device = { read: async () => ++reads === 1 ? updating : home };
+  const result = waitForAndroid(device, ns => ns === home, { timeout: 50 });
+  await Promise.resolve();
+  t.mock.timers.tick(1000);
+  assert.equal(await result, home);
+
+  device.read = async () => updating;
+  const failure = assert.rejects(waitForAndroid(device, () => assert.fail("Update screen is not ready")), { code: "TIMEOUT" });
+  await Promise.resolve();
+  t.mock.timers.tick(300001);
+  await failure;
+});
+
 test("Rating popups close before covered controls count as ready, without submitting a rating", async () => {
   const screen = [node("b30-CouponsLink", "Cupões")];
   const title = node("b34-b11-b1-b1-Title", "AJUDE-NOS A MELHORAR");
@@ -223,6 +241,11 @@ test("Android details supply exact codes, future discounts and dates without inv
   assert.equal(coupon.used, null);
   assert.equal(parseAndroidCoupon(detail(1, 1, { brand: "Galp", discount: "0.1 €" }), "Galp").discount, "0,1 €");
   assert.equal(parseAndroidCoupon(detail(1, 1, { brand: "Pizza Hut", description: "5EUR NUMA COMPRA SUPERIOR A 20EUR NA PIZZA HUT." }), "Pizza Hut").minimumPurchase, "Superior a 20 €");
+  const missingUnit = detail(1, 1).map(n => n["resource-id"]?.endsWith("-Image")
+    ? { ...n, text: "DESCONTO 15.00000000 EM CARTão NA MARCA Wells Ótica" } : n);
+  assert.equal(parseAndroidCoupon(missingUnit, "Wells").discount, null);
+  assert.equal(parseAndroidCoupon(missingUnit, "Wells").discountSource, null);
+  assert.throws(() => parseAndroidCoupon(missingUnit.filter(n => !n["resource-id"]?.endsWith("-Date")), "Wells"), { code: "LAYOUT_CHANGED" });
   for (const suffix of ["-VoucherCode", "-ConditionsContainer", "-Image", "-Date"])
     assert.throws(() => parseAndroidCoupon(detail(1, 1).filter((n) => !n["resource-id"].endsWith(suffix)), "Continente"), { code: "LAYOUT_CHANGED" });
   assert.throws(() => parseAndroidCoupon(detail(1, 1, { date: "de 32 a 34 de novembro de 2026" }), "Continente"), { code: "LAYOUT_CHANGED" });

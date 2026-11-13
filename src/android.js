@@ -8,6 +8,7 @@ import { dataDir } from "./config.js";
 import { parseDateRange } from "./dates.js";
 import { CheckError } from "./extraction.js";
 import { readAndroidBalance } from "./balance.js";
+import { readAndroidDiscount } from "./discount.js";
 
 const execute = promisify(execFile);
 const activity = "pt.continente.ContinenteTelemovel/.MainActivity";
@@ -53,15 +54,17 @@ export function parseAndroidCoupon(nodes, brand) {
     if (!nodes.some((n) => n["resource-id"]?.endsWith("-CouponDetail_WB") || label(n) === "CouponDetail")) throw Error();
     const code = field("-VoucherCode").match(/^Código:\s*(\d+)$/u)?.[1];
     const description = field("-ConditionsContainer").replace(/\s+/g, " ");
-    const amount = field("-Image").match(/^Desconto (\d+(?:[.,]\d+)?)\s*(%|€) em Cartão na marca /u);
+    const imageLabel = field("-Image");
+    const amount = imageLabel.match(/^Desconto (\d+(?:[.,]\d+)?)\s*(%|€) em Cartão na marca /iu);
+    const missingUnit = /^Desconto \d+(?:[.,]\d+)? em Cartão na marca .+$/iu.test(imageLabel);
     const dates = parseDateRange(field("-Date"));
-    if (!code || !description || !amount || !brand?.trim()) throw Error();
-    const discount = amount[1].replace(".", ",") + (amount[2] === "%" ? "%" : " €");
+    if (!code || !description || (!amount && !missingUnit) || !brand?.trim()) throw Error();
+    const discount = amount ? amount[1].replace(".", ",") + (amount[2] === "%" ? "%" : " €") : null;
     const minimum = description.match(/(?:COMPRA|ABASTECIMENTO) SUPERIOR A (\d+(?:[,.]\d+)?)\s*(€|EUR|L)(?=\s|[.,]|$)/u);
     return {
       key: `${brand}:${code}:${dates.startDate}`, code, brand,
       title: description, description, ...dates, discount,
-      discountSource: "android-accessibility", imageUrl: null,
+      discountSource: discount ? "android-accessibility" : null, imageUrl: null,
       minimumPurchase: minimum ? `Superior a ${minimum[1]} ${minimum[2] === "EUR" ? "€" : minimum[2]}` : null,
       activationRequired: null, activated: null, used: null,
     };
@@ -165,7 +168,7 @@ export async function collectAndroidCoupons(device, onProgress = () => {}) {
     onProgress({ stage: "coupons", brand });
     const tab = nodes.find((n) => /-SelectInsigniaLink2$/.test(n["resource-id"] || "") && label(n) === brand);
     if (!tab) throw new CheckError("LAYOUT_CHANGED");
-    nodes = await navigate(device, nodes, tab, (ns) => ns.some((n) => /-seeDetail2?$/.test(n["resource-id"] || "")) && ns.some((n) => label(n).startsWith("Desconto ") && label(n).includes(`na marca ${brand}`)));
+    nodes = await navigate(device, nodes, tab, (ns) => ns.some((n) => /-seeDetail2?$/.test(n["resource-id"] || "")) && ns.some((n) => label(n).toLowerCase().startsWith("desconto ") && label(n).toLowerCase().includes(`na marca ${brand.toLowerCase()}`)));
     const expected = new Set(nodes.filter((n) => /-seeDetail2?$/.test(n["resource-id"] || "")).map((n) => n["resource-id"])).size;
     if (!expected || expected > 100) throw new CheckError("UNVERIFIED_EMPTY_STATE");
     const positions = new Set();
@@ -185,6 +188,10 @@ export async function collectAndroidCoupons(device, onProgress = () => {}) {
           return true;
         } catch { return false; }
       });
+      if (!coupon.discount) {
+        coupon.discount = await readAndroidDiscount(device, nodes);
+        coupon.discountSource = "android-image";
+      }
       positions.add(position);
       coupons.push(coupon);
       onProgress({ stage: "coupons", brand, read: index + 1, total: expected });
@@ -198,8 +205,8 @@ export async function collectAndroidCoupons(device, onProgress = () => {}) {
 }
 
 export async function waitForAndroid(device, predicate, { timeout = 45000, manualLogin = false } = {}) {
-  const until = Date.now() + timeout;
-  let readError, networkRetries = 0, ratingDismissals = 0;
+  let until = Date.now() + timeout;
+  let readError, updateDeadline, networkRetries = 0, ratingDismissals = 0;
   while (Date.now() < until) {
     let nodes;
     try {
@@ -209,6 +216,13 @@ export async function waitForAndroid(device, predicate, { timeout = 45000, manua
       if (error.code !== "TIMEOUT" && !(error.code === "ANDROID_UNAVAILABLE" &&
           /Could not obtain layout root/.test(error.cause?.stderr || ""))) throw error;
       readError = error;
+      await pause(500);
+      continue;
+    }
+    if (nodes.some(n => /ESTAMOS A ATUALIZAR A SUA APLICAÇÃO/iu.test(label(n)) && !n.hidden && !n["off-screen"])) {
+      updateDeadline ??= Date.now() + 300000;
+      until = Math.max(until, updateDeadline);
+      readError = new CheckError("TIMEOUT");
       await pause(500);
       continue;
     }
